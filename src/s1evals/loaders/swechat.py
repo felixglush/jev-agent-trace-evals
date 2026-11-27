@@ -12,7 +12,7 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 
-from s1evals.domain import Event, Role, Trace, TurnType
+from s1evals.domain import SHELL_TOOLS, Event, Role, Trace, TurnType
 from s1evals.text import estimate_tokens
 
 REPO = "datasets/SALT-NLP/SWE-chat"
@@ -54,18 +54,43 @@ TURN_MAP: dict[str, tuple[Role, TurnType]] = {
     "tool_result": (Role.TOOL, TurnType.TOOL_RESULT),
 }
 
-_FAILURE = re.compile(
-    r"<tool_use_error>|^\s*error\b|traceback \(most recent call last\)|exit code [1-9]\d*"
-    r"|command not found|no such file or directory|permission denied"
-    # "3 failed" counts, "0 failed" / "failed: 0" do not.
-    r"|(?<!\b0 )\bfailed\b(?!\s*[:=]\s*0\b)",
+# Failure signals any tool can return (the harness's own error wrapper, a crash).
+_TOOL_ERROR = re.compile(r"\A\s*<tool_use_error>|\A\s*error\b|traceback \(most recent call last\)", re.IGNORECASE)
+# Extra signals only a shell's output carries. A file read or search returns
+# code and logs, where words like "error" or "failed" are content, not failure.
+_SHELL_FAILURE = re.compile(
+    r"<tool_use_error>|(?:exit code|exited with code|exit status)\W{0,3}[1-9]\d*"
+    r"|command not found|no such file or directory|permission denied|^\s*(?:error|fatal)\b[:\s]|^FAIL(?:ED)?\b"
+    # "3 failed" counts; "0 failed" and a bare "failed" in logged text do not.
+    r"|\b[1-9]\d* (?:failed|failing|errors?)\b",
     re.IGNORECASE | re.MULTILINE,
 )
 
 
-def looks_failed(content: str) -> bool:
-    """Heuristic failure flag for tool results (the dataset has no is_error column)."""
-    return bool(_FAILURE.search(content[:4000]))
+def looks_failed(content: str, tool_name: str | None = None) -> bool:
+    """Heuristic failure flag for tool results (the dataset has no is_error column).
+
+    With no tool_name the shell rules apply, since a shell is the usual source.
+    """
+    text = content[:4000]
+    if _TOOL_ERROR.search(text):
+        return True
+    return (tool_name is None or tool_name in SHELL_TOOLS) and bool(_SHELL_FAILURE.search(text))
+
+
+# Claude Code writes slash commands, their output and interrupts into the
+# user_prompt column. Only the interrupt is the person speaking.
+_HARNESS_PREFIXES = (
+    "<command-name>",
+    "<command-message>",
+    "<local-command-",
+    "<environment_context>",
+    "<system-reminder>",
+)
+
+
+def is_harness_text(content: str) -> bool:
+    return content.lstrip().startswith(_HARNESS_PREFIXES)
 
 
 @dataclass(frozen=True)
@@ -129,6 +154,8 @@ def map_rows(session: Mapping, rows: Iterable[Mapping]) -> tuple[Trace, list[Eve
             continue
         role, turn_type = mapped
         content = r["content"] or ""
+        if role is Role.USER and is_harness_text(content):
+            role = Role.SYSTEM
         events.append(
             Event(
                 trace_id=trace_id,
@@ -140,10 +167,13 @@ def map_rows(session: Mapping, rows: Iterable[Mapping]) -> tuple[Trace, list[Eve
                 tool_name=r["tool_name"] or None,
                 tool_call_id=r["tool_call_id"] or None,
                 command=r["command"] or None,
-                is_error=turn_type is TurnType.TOOL_RESULT and looks_failed(content),
             )
         )
     _attach_tool_names(events)
+    events = [
+        replace(e, is_error=looks_failed(e.content, e.tool_name)) if e.turn_type is TurnType.TOOL_RESULT else e
+        for e in events
+    ]
     trace = Trace(
         trace_id=trace_id,
         source=SOURCE,

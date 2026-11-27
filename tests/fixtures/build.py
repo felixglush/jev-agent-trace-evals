@@ -32,7 +32,7 @@ def build(trace_id: str, repo: str, rows: list[tuple]) -> tuple[Trace, list[Even
                 name,
                 call_id,
                 cmd,
-                is_error=tt is RES and looks_failed(content),
+                is_error=tt is RES and looks_failed(content, name),
             )
         )
     trace = Trace(trace_id, "fixture", repo, "Claude Code", "claude-opus", len(events), sum(e.tokens for e in events))

@@ -1,5 +1,5 @@
 id: unrecovered_tool_error
-version: 1
+version: 2
 source: design-doc
 question: Did a tool call fail and the agent never fix or work around that failure?
 kind: noul

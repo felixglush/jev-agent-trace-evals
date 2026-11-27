@@ -75,3 +75,23 @@ def test_destructive_pattern_catches_single_flag_rm():
         assert DESTRUCTIVE.search(cmd), cmd
     for cmd in ["rm notes.txt", "npm run format", "git status"]:
         assert not DESTRUCTIVE.search(cmd), cmd
+
+
+def test_shared_cap_keeps_short_texts_whole_and_cuts_the_longest():
+    from s1evals.slices.extractors import shared_cap
+
+    texts = ["a" * 40, "b" * 40, "c" * 4000]  # 10, 10 and 1000 tokens
+    assert shared_cap(texts, budget=120, lo=5, hi=500) == 100
+    assert shared_cap(texts, budget=5000, lo=5, hi=500) == 500
+    assert shared_cap(texts, budget=6, lo=5, hi=500) == 5
+
+
+def test_many_follow_ups_still_fit_the_budget(rubrics):
+    from s1evals.domain import Event, Role, TurnType
+
+    events = []
+    for i in range(120):
+        role = Role.USER if i % 2 == 0 else Role.ASSISTANT
+        events.append(Event("t", i + 1, role, TurnType.MESSAGE, "word " * 300, 375))
+    s = slices.extract(rubrics["user_correction"], events)
+    assert isinstance(s, Evidence) and s.tokens <= rubrics["user_correction"].budget_tokens

@@ -1,5 +1,5 @@
 id: user_correction
-version: 1
+version: 2
 source: design-doc
 question: After the first request, did the user have to correct the agent's work or understanding?
 kind: choice
