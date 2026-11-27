@@ -38,19 +38,3 @@ def show_slice(ctx, trace_id, rubric_id) -> None:
     if isinstance(result, Evidence):
         payload["over_budget"] = slices.over_budget(rubric, result)
     echo_json(payload)
-
-
-@cli.command("jev")
-@click.argument("trace_id")
-@click.argument("rubric_id")
-@click.pass_context
-def probe_jev(ctx, trace_id, rubric_id) -> None:
-    """Send one rubric's slice to Jev and print request and verdict."""
-    from s1evals.judges.jev import JevJudge
-
-    rubric = rubrics_of(ctx)[rubric_id]
-    result = slices.extract(rubric, store_of(ctx).events(trace_id))
-    if not isinstance(result, Evidence):
-        raise click.ClickException(f"no evidence to send: {result}")
-    verdict, payload = JevJudge().judge(rubric, trace_id, result)
-    echo_json({"request": payload, "verdict": verdict.__dict__})

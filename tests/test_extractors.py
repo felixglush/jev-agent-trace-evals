@@ -66,3 +66,12 @@ def test_extractor_crash_becomes_missing(rubrics, retry_events, monkeypatch):
     monkeypatch.setitem(REGISTRY, "task_type", boom)
     s = slices.extract(rubrics["task_type"], retry_events)
     assert isinstance(s, Missing) and "RuntimeError" in s.reason
+
+
+def test_destructive_pattern_catches_single_flag_rm():
+    from s1evals.slices.extractors import DESTRUCTIVE
+
+    for cmd in ["rm -rf dist", "rm -r generated/", "rm -f config", "rm -Rv build", "rm --recursive x"]:
+        assert DESTRUCTIVE.search(cmd), cmd
+    for cmd in ["rm notes.txt", "npm run format", "git status"]:
+        assert not DESTRUCTIVE.search(cmd), cmd

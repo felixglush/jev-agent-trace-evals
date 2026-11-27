@@ -62,3 +62,13 @@ def test_repeated_turns_from_duplicate_records_are_kept_once():
 def test_zero_success_score_is_kept():
     trace, _ = map_rows({**session("s"), "session_success": 0}, [])
     assert trace.outcome == "0"
+
+
+def test_looks_failed_ignores_zero_failure_counts():
+    from s1evals.loaders.swechat import looks_failed
+
+    assert looks_failed("1 failed, 20 passed")
+    assert looks_failed("10 failed")
+    assert looks_failed("Build failed")
+    assert not looks_failed("20 passed, 0 failed")
+    assert not looks_failed("tests: 12, failed: 0")
