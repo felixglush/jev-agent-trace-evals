@@ -12,10 +12,13 @@ def invoke(db, *args, env=None):
     return result.output
 
 
-def test_load_and_trace_tools(tmp_path):
+def test_load_slice_and_trace_tools(tmp_path):
     db = tmp_path / "c.duckdb"
     invoke(db, "load", "snapshot", *map(str, sorted(FIXTURES.glob("*.json"))))
     assert "fx_retry" in invoke(db, "traces")
+    assert "12 rubrics valid" in invoke(db, "rubrics", "check")
+    sl = json.loads(invoke(db, "slice", "fx_retry", "user_correction"))
+    assert sl["kind"] == "Evidence"
     hits = json.loads(invoke(db, "trace", "--trace-id", "fx_retry", "search", "multipart"))
     assert hits[0]["seq"] == 7
 

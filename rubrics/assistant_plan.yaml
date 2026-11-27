@@ -1,0 +1,15 @@
+id: assistant_plan
+version: 1
+source: judgment-labs-blog
+question: Does this assistant message lay out several future steps?
+kind: noul
+scope: item
+labels:
+  "yes": The message lists or describes two or more steps the agent intends to take next.
+  "no": The message reports what was done, answers a question, or names at most one next step.
+extractor: assistant_plan
+evidence: One assistant message, picked deterministically per trace.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: low
