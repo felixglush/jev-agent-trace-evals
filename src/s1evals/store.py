@@ -152,6 +152,8 @@ class Store:
         with self.connect() as con:
             con.execute("BEGIN")
             con.execute("DELETE FROM events WHERE trace_id = ?", [trace.trace_id])
+            # Slices are cached per rubric version; a re-loaded trace may differ.
+            con.execute("DELETE FROM slices WHERE trace_id = ?", [trace.trace_id])
             con.execute("DELETE FROM traces WHERE trace_id = ?", [trace.trace_id])
             con.execute(
                 "INSERT INTO traces VALUES (?, ?, ?, ?, ?, ?, ?, ?)",

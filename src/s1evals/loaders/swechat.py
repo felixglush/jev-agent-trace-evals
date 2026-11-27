@@ -54,13 +54,16 @@ TURN_MAP: dict[str, tuple[Role, TurnType]] = {
     "tool_result": (Role.TOOL, TurnType.TOOL_RESULT),
 }
 
-# Failure signals any tool can return (the harness's own error wrapper, a crash).
-_TOOL_ERROR = re.compile(r"\A\s*<tool_use_error>|\A\s*error\b|traceback \(most recent call last\)", re.IGNORECASE)
+# Failure signals any tool can return: the harness's error wrapper or an error
+# reply in place of a result. Only checked at the start, so file text that
+# merely contains "Error:" or a traceback is not a failure.
+_TOOL_ERROR = re.compile(r"\A\s*(?:<tool_use_error>|error\b)", re.IGNORECASE)
 # Extra signals only a shell's output carries. A file read or search returns
 # code and logs, where words like "error" or "failed" are content, not failure.
 _SHELL_FAILURE = re.compile(
     r"<tool_use_error>|(?:exit code|exited with code|exit status)\W{0,3}[1-9]\d*"
     r"|command not found|no such file or directory|permission denied|^\s*(?:error|fatal)\b[:\s]|^FAIL(?:ED)?\b"
+    r"|traceback \(most recent call last\)"
     # "3 failed" counts; "0 failed" and a bare "failed" in logged text do not.
     r"|\b[1-9]\d* (?:failed|failing|errors?)\b",
     re.IGNORECASE | re.MULTILINE,

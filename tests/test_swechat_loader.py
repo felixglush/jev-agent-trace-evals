@@ -76,6 +76,8 @@ def test_looks_failed_ignores_zero_failure_counts():
     # File reads and searches return content; only the harness's error wrapper is a failure there.
     assert not looks_failed("12  raise Error('3 failed')\nerror: bad", "Read")
     assert looks_failed("<tool_use_error>File does not exist.</tool_use_error>", "Read")
+    assert not looks_failed("1\tTraceback (most recent call last):\n2\t  File x", "Read")
+    assert looks_failed("Traceback (most recent call last):\n  File x", "Bash")
     assert not looks_failed("20 passed, 0 failed")
     assert not looks_failed("tests: 12, failed: 0")
 
