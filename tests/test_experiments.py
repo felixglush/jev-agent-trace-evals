@@ -16,3 +16,17 @@ def test_public_problems_drop_messages(tmp_path):
     p.add(JudgeName.CLAUDE_AGENT, "t1", "JudgeError", "model said: <quoted trace text>", "task_type")
     assert p.public() == [{"judge": "claude_agent", "trace_id": "t1", "rubric_id": "task_type", "kind": "JudgeError"}]
     assert "quoted trace text" in (tmp_path / "p.jsonl").read_text()
+
+
+def test_log_reports_only_what_this_config_selected(store, rubrics, tmp_path):
+    jv = rubrics["task_type"].judge_version(JudgeName.JEV, "jev-1.14.0")
+    store.put_scores("r1", [
+        Verdict("fx_retry", "task_type", JudgeName.JEV, "bugfix", 0.9, jv),
+        Verdict("fx_retry", "task_type", JudgeName.CLAUDE_AGENT, "bugfix", 0.9, jv),
+        Verdict("fx_cleanup", "task_type", JudgeName.JEV, "bugfix", 0.9, jv),
+    ])  # fmt: skip
+    cfg = experiments.RunConfig("r1", "", ["fx_retry"], ["task_type"], ["jev"])
+    slice_map = experiments.extract_all(store, {"task_type": rubrics["task_type"]}, cfg.trace_ids)
+    out = experiments.write_log(store, rubrics, cfg, slice_map, [], out_root=tmp_path)
+    rows = (out / "verdicts.jsonl").read_text().splitlines()
+    assert len(rows) == 1 and '"fx_retry"' in rows[0] and '"jev"' in rows[0]

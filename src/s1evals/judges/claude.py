@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from s1evals.domain import Evidence, JudgeName, Verdict
@@ -160,7 +160,6 @@ def to_verdicts(
 ) -> tuple[list[Verdict], list[tuple[str | None, str]]]:
     """Map structured output to verdicts. Returns (verdicts, [(rubric_id, problem)])."""
     by_id = {r.id: r for r in rubrics}
-    share = 1 / max(len(rubrics), 1)
     verdicts, problems, seen = [], [], set()
     for item in run.structured.get("verdicts", []):
         rid = item.get("rubric_id") if isinstance(item, dict) else None
@@ -185,11 +184,13 @@ def to_verdicts(
                 evidence_ref=tuple(evidence_ref),
                 explanation=item.get("explanation"),
                 judge_version=rubric.judge_version(judge, f"claude-{MODEL}-{EFFORT}"),
-                cost_usd=run.cost_usd * share,
-                latency_s=run.latency_s * share,
             )
         )
     problems += [(r.id, "no verdict returned") for r in rubrics if r.id not in seen]
+    # Spread the whole session's spend over the verdicts it produced, so a rubric
+    # the session failed on doesn't drop its share from the reported cost.
+    share = 1 / max(len(verdicts), 1)
+    verdicts = [replace(v, cost_usd=run.cost_usd * share, latency_s=run.latency_s * share) for v in verdicts]
     return verdicts, problems
 
 
