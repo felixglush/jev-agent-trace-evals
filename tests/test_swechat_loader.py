@@ -93,3 +93,11 @@ def test_harness_text_in_the_user_column_is_not_the_user_speaking():
     ]  # fmt: skip
     _, events = map_rows(session("s1"), rows)
     assert [e.role for e in events] == [Role.USER, Role.SYSTEM, Role.USER]
+
+
+def test_excluded_sessions_leave_a_held_out_continuation():
+    rows = [session(f"s{i}", repo=f"r{i % 4}") for i in range(30)]
+    first = select_sessions(rows, SampleSpec(n=5))
+    both = select_sessions(rows, SampleSpec(n=12))
+    rest = select_sessions(rows, SampleSpec(n=7, exclude=frozenset(r["session_id"] for r in first)))
+    assert [r["session_id"] for r in both] == [r["session_id"] for r in first + rest]

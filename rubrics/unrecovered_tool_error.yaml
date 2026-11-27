@@ -1,5 +1,5 @@
 id: unrecovered_tool_error
-version: 3
+version: 4
 source: design-doc
 question: Did a tool call fail and the agent never fix or work around that failure?
 kind: noul
@@ -23,6 +23,6 @@ jev_items:
   aggregate: any_unresolved
   questions:
     unresolved:
-      instructions: Was this failed tool call still unresolved when the session ended?
-      "true": The agent gave up on it, moved on without it, or the session ended with the same step still failing.
-      "false": A later step did the same thing successfully, the agent reached the same goal another way, or the failure was expected and harmless, such as a search that found nothing.
+      instructions: Did this failure stop the agent from doing part of what the user asked for?
+      "true": Because of this failure, something the user asked for was left undone or broken when the session ended.
+      "false": The agent got the same result on a later try or another way, or the failure did not matter to the task, such as a lookup that found nothing or a check the agent turned out not to need.

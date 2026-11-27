@@ -202,7 +202,7 @@ def unrecovered_tool_error(events: list[Event]) -> SliceResult:
     # many failures the latest ones are kept and the earlier ones only counted.
     shown = failures[-MAX_FAILURES:]
     nexts = [following(events, f.seq, is_action) for f in shown]
-    room = SLICE_TOKENS - 100 - 40 * len(shown)  # final message, commands and field names
+    room = SLICE_TOKENS - 100 - 50 * len(shown)  # final message, commands and field names
     cap = shared_cap([f.content for f in shown] + [n.content for n in nexts if n], room, lo=20, hi=150)
     items, refs = [], []
     for f, nxt in zip(shown, nexts, strict=True):

@@ -21,12 +21,22 @@ def load() -> None:
 @click.option("--min-prompts", default=3, show_default=True)
 @click.option("--max-per-repo", default=3, show_default=True)
 @click.option("--agent", default=None, help="Only sessions from this agent, e.g. 'Claude Code'.")
+@click.option(
+    "--exclude-run",
+    "exclude_runs",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=True, path_type=Path),
+    help="An experiments/<run_id> folder whose traces to leave out, for a held-out sample.",
+)
 @click.pass_context
-def load_swechat(ctx, n, seed, min_tool_calls, min_prompts, max_per_repo, agent) -> None:
+def load_swechat(ctx, n, seed, min_tool_calls, min_prompts, max_per_repo, agent, exclude_runs) -> None:
     """Sample SWE-chat sessions (needs HF access to the gated dataset)."""
+    import json
+
     from s1evals.loaders.swechat import SampleSpec, fetch_sample
 
-    spec = SampleSpec(n, seed, min_tool_calls, min_prompts, max_per_repo, agent)
+    exclude = frozenset(t for run in exclude_runs for t in json.loads((run / "config.json").read_text())["trace_ids"])
+    spec = SampleSpec(n, seed, min_tool_calls, min_prompts, max_per_repo, agent, exclude)
     store = store_of(ctx)
     for trace, events in fetch_sample(spec):
         store.put_trace(trace, events)

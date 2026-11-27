@@ -104,6 +104,9 @@ class SampleSpec:
     min_prompts: int = 3
     max_per_repo: int = 3
     agent: str | None = None
+    # Sessions an earlier sample already used. They still count toward the
+    # per-repo cap, so the new sample is the old one's continuation in rank order.
+    exclude: frozenset[str] = frozenset()
 
 
 def select_sessions(rows: Iterable[Mapping], spec: SampleSpec) -> list[Mapping]:
@@ -135,6 +138,8 @@ def select_sessions(rows: Iterable[Mapping], spec: SampleSpec) -> list[Mapping]:
         if per_repo[repo] >= spec.max_per_repo:
             continue
         per_repo[repo] += 1
+        if r["session_id"] in spec.exclude:
+            continue
         chosen.append(r)
         if len(chosen) == spec.n:
             break

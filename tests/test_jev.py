@@ -38,7 +38,7 @@ def test_item_answers_are_aggregated_in_code(rubrics):
     noul = lambda p: {"type": "noul", "noul": p}  # noqa: E731
     answers = {"corrects_0": noul(0.1), "redirects_0": noul(0.1), "corrects_1": noul(0.9), "redirects_1": noul(0.8)}
     v = parse_response(rubrics["user_correction"], "t", ITEMS, {"answers": answers}, 0.1)
-    assert v.label == "major" and v.confidence == pytest.approx(0.6)
+    assert v.label == "major" and v.confidence == pytest.approx(2 / 3)
 
 
 def test_noul_request_maps_yes_no_to_true_false(rubrics):

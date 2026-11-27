@@ -7,9 +7,11 @@ rubric's label. They take the max over items rather than multiplying odds,
 because answers about items of one session are far from independent, and a
 product would turn many small probabilities into a confident "yes".
 
-Each function returns (label, probabilities, confidence). Confidence is the
-distance from the 0.5 boundary that decided the label, on the same 0-1 scale as
-a single Noul's |2p - 1|, so the routing threshold means the same thing.
+An item counts only when its Noul is above YES (0.7), and the trace is "no"
+only when every item is below NO (0.3), TypeSafe's suggested starting
+thresholds. A deciding probability between them means the slice does not
+settle the question: its confidence is under 0.5, so routing sends the pair to
+the slow judge. Each function returns (label, probabilities, confidence).
 """
 
 from __future__ import annotations
@@ -30,15 +32,24 @@ def aggregate(name: str) -> Callable[[Aggregate], Aggregate]:
     return register
 
 
-def _distance(p: float) -> float:
-    return abs(2 * p - 1)
+YES, NO = 0.7, 0.3
+
+
+def banded_confidence(p: float) -> float:
+    """0.5 at the band edges, rising to 1 at p = 0 or 1, and below 0.5 inside
+    the unsettled band (0 at p = 0.5)."""
+    if p >= YES:
+        return 0.5 + 0.5 * (p - YES) / (1 - YES)
+    if p <= NO:
+        return 0.5 + 0.5 * (NO - p) / NO
+    return 0.5 * abs(p - 0.5) / (YES - 0.5)
 
 
 @aggregate("any_unresolved")
 def any_unresolved(items: ItemAnswers) -> tuple[str, dict[str, float], float]:
-    """yes when any item's `unresolved` Noul is true."""
+    """yes when any failure is clearly unresolved, no when all clearly are not."""
     p = max(item["unresolved"] for item in items)
-    return ("yes" if p >= 0.5 else "no"), {"yes": p, "no": 1 - p}, _distance(p)
+    return ("yes" if p >= 0.5 else "no"), {"yes": p, "no": 1 - p}, banded_confidence(p)
 
 
 @aggregate("correction_severity")
@@ -49,7 +60,7 @@ def correction_severity(items: ItemAnswers) -> tuple[str, dict[str, float], floa
     p_major = max(min(item["corrects"], item["redirects"]) for item in items)
     probabilities = {"none": 1 - p_any, "minor": max(0.0, p_any - p_major), "major": p_major}
     if p_major >= 0.5:
-        return "major", probabilities, _distance(p_major)
+        return "major", probabilities, banded_confidence(p_major)
     if p_any >= 0.5:
-        return "minor", probabilities, min(_distance(p_any), _distance(p_major))
-    return "none", probabilities, _distance(p_any)
+        return "minor", probabilities, min(banded_confidence(p_any), banded_confidence(p_major))
+    return "none", probabilities, banded_confidence(p_any)
