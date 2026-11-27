@@ -1,0 +1,8 @@
+# Raw traces, the DuckDB store, Jev request payloads and judge snapshots.
+# SWE-chat is gated and this repo is public: never commit trace text.
+data/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
