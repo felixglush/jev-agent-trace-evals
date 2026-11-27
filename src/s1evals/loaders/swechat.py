@@ -207,29 +207,40 @@ def _attach_tool_names(events: list[Event]) -> None:
 # --- Remote reads -------------------------------------------------------------
 
 
+_FETCH_WORKERS = 16
+
+
 def _hf_parquet(name: str, columns: list[str], session_ids: list[str] | None = None) -> list[dict]:
     """Read columns of one parquet file; with session_ids, read only the row
     groups that contain them. The session_id column is scanned first (small,
     dictionary-encoded), so the wide `content` column travels only for the
-    row groups that hold sampled sessions."""
+    row groups that hold sampled sessions. Row groups are fetched in parallel:
+    one at a time, the ~1,200 small reads alone take minutes over HTTP."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    import pyarrow as pa
     import pyarrow.compute as pc
     import pyarrow.parquet as pq
     from huggingface_hub import HfFileSystem
 
-    with HfFileSystem().open(f"{REPO}/{name}", "rb", block_size=8 * 2**20) as f:
+    fs, path = HfFileSystem(), f"{REPO}/{name}"
+    with fs.open(path, "rb", block_size=8 * 2**20) as f:
         pf = pq.ParquetFile(f)
         if session_ids is None:
             return pf.read(columns=columns).to_pylist()
-        wanted = set(session_ids)
-        groups = [
-            i
-            for i in range(pf.num_row_groups)
-            if wanted.intersection(pf.read_row_group(i, columns=["session_id"]).column(0).unique().to_pylist())
-        ]
-        if not groups:
-            return []
-        table = pf.read_row_groups(groups, columns=columns)
-        return table.filter(pc.is_in(table["session_id"], value_set=_pa_strings(session_ids))).to_pylist()
+        meta = pf.metadata
+    wanted = _pa_strings(session_ids)
+
+    def read(group: int, cols: list[str]) -> pa.Table:
+        with fs.open(path, "rb", block_size=2**20) as f:
+            table = pq.ParquetFile(f, metadata=meta).read_row_group(group, columns=cols)
+        return table.filter(pc.is_in(table["session_id"], value_set=wanted))
+
+    with ThreadPoolExecutor(_FETCH_WORKERS) as pool:
+        hits = pool.map(lambda g: read(g, ["session_id"]).num_rows > 0, range(meta.num_row_groups))
+        groups = [g for g, hit in enumerate(hits) if hit]
+        tables = list(pool.map(lambda g: read(g, columns), groups))
+    return pa.concat_tables(tables).to_pylist() if tables else []
 
 
 def _pa_strings(values: list[str]):
