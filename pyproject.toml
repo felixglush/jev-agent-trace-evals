@@ -1,0 +1,47 @@
+[project]
+name = "s1evals"
+version = "0.1.0"
+description = "System One evals on coding-agent traces: Jev on extracted slices, a Claude agent judge on full traces"
+readme = "README.md"
+authors = [
+    { name = "Claude", email = "noreply@anthropic.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.5.1",
+    "duckdb>=2.0.1",
+    "fastapi>=0.165.0",
+    "httpx>=0.29.0",
+    "huggingface-hub>=2.5.0",
+    "pyarrow>=26.0.1",
+    "pyyaml>=6.0.4",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+s1evals = "s1evals:main"
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]  # the formatter owns line length
+
+[tool.ruff.lint.isort]
+known-first-party = ["s1evals"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
