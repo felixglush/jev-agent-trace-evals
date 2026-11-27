@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from s1evals import analysis, report, slices
-from s1evals.domain import Evidence, JudgeName, Missing, SliceResult
+from s1evals.domain import Evidence, JudgeName, Missing, SliceResult, Verdict
 from s1evals.judges import claude
 from s1evals.judges.jev import JevJudge
 from s1evals.loaders import snapshot
@@ -202,6 +202,15 @@ def write_log(
     verdicts = [
         v for _, v in store.scores(run_id=cfg.run_id) if (v.trace_id, v.rubric_id) in slice_map and v.judge in judges
     ]
+    # A resumed run retries what failed before; keep only problems still unresolved.
+    scored = {(v.judge.value, v.trace_id, v.rubric_id) for v in verdicts}
+    sessions = {(judge, trace_id) for judge, trace_id, _ in scored}
+    problems = [
+        p
+        for p in problems
+        if (p["judge"], p["trace_id"], p["rubric_id"]) not in scored
+        and not (p["rubric_id"] is None and (p["judge"], p["trace_id"]) in sessions)
+    ]
     metrics = analysis.compute(rubrics, slice_map, verdicts, human_labels(store))
 
     config = {
@@ -233,3 +242,24 @@ def write_log(
     (out / "metrics.json").write_text(json.dumps(report.metrics_json(metrics), indent=2) + "\n")
     (out / "REPORT.md").write_text(report.markdown(cfg.run_id, cfg.description, rubrics, metrics, len(problems)))
     return out
+
+
+def import_log(store: Store, run_dir: Path) -> tuple[str, int]:
+    """Load a committed experiment log's verdicts into a local store, so the
+    annotation app can show a run made elsewhere. The traces themselves must be
+    loaded separately (`load swechat --from-run`), since logs carry no trace text."""
+    run_id = json.loads((run_dir / "config.json").read_text())["run_id"]
+    verdicts = []
+    for line in (run_dir / "verdicts.jsonl").read_text().splitlines():
+        row = json.loads(line)
+        verdicts.append(
+            Verdict(
+                **{
+                    **row,
+                    "judge": JudgeName(row["judge"]),
+                    "evidence_ref": tuple(row["evidence_ref"]),
+                }
+            )
+        )
+    store.put_scores(run_id, verdicts)
+    return run_id, len(verdicts)

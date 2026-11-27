@@ -1,5 +1,5 @@
 id: unrecovered_tool_error
-version: 1
+version: 4
 source: design-doc
 question: Did a tool call fail and the agent never fix or work around that failure?
 kind: noul
@@ -10,8 +10,19 @@ labels:
 code_labels:
   "no": Assigned by code when no tool result looks failed.
 extractor: unrecovered_tool_error
-evidence: Failed tool results plus the next assistant action after each, and the agent's final message.
+evidence: The last 15 failed tool results, each with the agent's next action and whether the same command later succeeded, plus the agent's final message.
 budget_tokens: 4000
 threshold: 0.5
 admitted: false
 sufficiency_risk: medium (recovery may come much later than the next action)
+# Jev answers one question per failure; code says "yes" if any failure is
+# still unresolved (judges/aggregate.py: any_unresolved).
+jev_items:
+  items: failures_in_order
+  context: [agent_final_message]
+  aggregate: any_unresolved
+  questions:
+    unresolved:
+      instructions: Did this failure stop the agent from doing part of what the user asked for?
+      "true": Because of this failure, something the user asked for was left undone or broken when the session ended.
+      "false": The agent got the same result on a later try or another way, or the failure did not matter to the task, such as a lookup that found nothing or a check the agent turned out not to need.

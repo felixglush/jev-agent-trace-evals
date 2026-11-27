@@ -61,3 +61,43 @@ def test_fast_path_agreement_excludes_fallbacks(rubrics):
     assert m.agreement_vs_agent[analysis.ROUTED]["_all"].rate == 0.5
     assert m.agreement_vs_agent[analysis.FAST_PATH]["_all"].total == 1
     assert m.agreement_vs_agent[analysis.FAST_PATH]["_all"].rate == 0.0
+
+
+def test_auroc_and_coverage_rank_right_answers_above_wrong_ones():
+    from s1evals.analysis import auroc, confidence_quality
+
+    assert auroc([(0.9, True), (0.2, False)]) == 1.0
+    assert auroc([(0.5, True), (0.5, False)]) == 0.5
+    assert auroc([(0.9, True)]) is None
+    fast = {
+        ("t1", "r"): Verdict("t1", "r", JudgeName.JEV, "yes", 0.95, "v"),
+        ("t2", "r"): Verdict("t2", "r", JudgeName.JEV, "yes", 0.2, "v"),
+    }
+    q = confidence_quality(fast, {("t1", "r"): "yes", ("t2", "r"): "no"})
+    assert q["auroc"] == 1.0
+    kept_at_half = next(row for row in q["coverage"] if row["threshold"] == 0.5)
+    assert kept_at_half == {"threshold": 0.5, "coverage": 0.5, "accuracy_kept": 1.0}
+
+
+def test_roc_and_suggested_threshold():
+    scored = [(0.9, True)] * 12 + [(0.6, True)] * 4 + [(0.6, False)] * 4 + [(0.2, False)] * 5
+    points = analysis.roc(scored)
+    assert points[0] == {"threshold": None, "tpr": 0.0, "fpr": 0.0}
+    assert points[-1] == {"threshold": 0.2, "tpr": 1.0, "fpr": 1.0}
+    assert analysis.auroc(scored) > 0.8
+    assert analysis.suggest_threshold(scored, 0.95) == 0.9  # only the 12 confident answers are all right
+    assert analysis.suggest_threshold(scored, 0.8) == 0.6  # 16/20 kept answers agree
+    assert analysis.suggest_threshold(scored, 0.99, min_kept=13) is None
+
+
+def test_tune_thresholds_reports_per_rubric_and_held_out():
+    fast = {
+        (f"t{i}", "r"): Verdict(f"t{i}", "r", JudgeName.JEV, "yes" if i < 16 else "no", 0.9 if i < 16 else 0.3, "v")
+        for i in range(20)
+    }
+    reference = {(f"t{i}", "r"): "yes" for i in range(20)}
+    out = analysis.tune_thresholds(fast, reference, 0.9, {"r": 0.5})
+    r = out["by_rubric"]["r"]
+    assert r["n"] == 20 and r["auroc"] == 1.0 and r["suggested"] == 0.9
+    assert r["current_coverage"] == 0.8 and r["current_accuracy"] == 1.0
+    assert r["held_out"] == {"coverage": 0.8, "accuracy_kept": 1.0}

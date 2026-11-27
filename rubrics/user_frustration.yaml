@@ -1,5 +1,5 @@
 id: user_frustration
-version: 1
+version: 2
 source: design-doc
 question: Does the user express frustration with the agent at any point in the session?
 kind: noul

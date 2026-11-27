@@ -21,16 +21,39 @@ def load() -> None:
 @click.option("--min-prompts", default=3, show_default=True)
 @click.option("--max-per-repo", default=3, show_default=True)
 @click.option("--agent", default=None, help="Only sessions from this agent, e.g. 'Claude Code'.")
+@click.option(
+    "--exclude-run",
+    "exclude_runs",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=True, path_type=Path),
+    help="An experiments/<run_id> folder whose traces to leave out, for a held-out sample.",
+)
+@click.option(
+    "--from-run",
+    "from_run",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help="Load exactly the traces an experiments/<run_id> folder lists (ignores the sampling options).",
+)
 @click.pass_context
-def load_swechat(ctx, n, seed, min_tool_calls, min_prompts, max_per_repo, agent) -> None:
+def load_swechat(ctx, n, seed, min_tool_calls, min_prompts, max_per_repo, agent, exclude_runs, from_run) -> None:
     """Sample SWE-chat sessions (needs HF access to the gated dataset)."""
-    from s1evals.loaders.swechat import SampleSpec, fetch_sample
+    from s1evals.loaders.swechat import SampleSpec, fetch_sample, fetch_sessions
 
-    spec = SampleSpec(n, seed, min_tool_calls, min_prompts, max_per_repo, agent)
+    if from_run:
+        fetched = fetch_sessions(_run_trace_ids(from_run))
+    else:
+        exclude = frozenset(t for run in exclude_runs for t in _run_trace_ids(run))
+        fetched = fetch_sample(SampleSpec(n, seed, min_tool_calls, min_prompts, max_per_repo, agent, exclude))
     store = store_of(ctx)
-    for trace, events in fetch_sample(spec):
+    for trace, events in fetched:
         store.put_trace(trace, events)
         click.echo(f"{trace.trace_id}  {trace.repo}  {trace.n_events} events  ~{trace.n_tokens} tokens")
+
+
+def _run_trace_ids(run_dir: Path) -> list[str]:
+    import json
+
+    return json.loads((run_dir / "config.json").read_text())["trace_ids"]
 
 
 @load.command("snapshot")

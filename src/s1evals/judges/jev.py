@@ -1,4 +1,8 @@
-"""Fast judge: TypeSafe's Jev answers one typed question per rubric over the slice.
+"""Fast judge: TypeSafe's Jev answers typed questions about a rubric's slice.
+
+Most rubrics send one question over the whole slice. A rubric with `jev_items`
+sends one Noul per item instead (each item placed in its question), all in one
+request, and code in judges/aggregate.py turns the answers into the label.
 
 Request building and response parsing are pure functions so the exact payload
 is testable and loggable; only `JevJudge.judge` touches the network.
@@ -6,6 +10,7 @@ is testable and loggable; only `JevJudge.judge` touches the network.
 
 from __future__ import annotations
 
+import json
 import os
 import time
 from dataclasses import dataclass, field
@@ -14,6 +19,7 @@ import httpx
 
 from s1evals.domain import Evidence, JudgeName, Verdict
 from s1evals.judges import JudgeError
+from s1evals.judges.aggregate import REGISTRY as AGGREGATES
 from s1evals.rubrics import Kind, Rubric
 
 URL = "https://api.typesafe.ai/v1/systemone"
@@ -23,6 +29,8 @@ QUESTION_ID = "verdict"
 
 
 def build_request(rubric: Rubric, evidence: Evidence, model: str = MODEL) -> dict:
+    if rubric.jev_items:
+        return build_item_request(rubric, evidence, model)
     if rubric.kind is Kind.NOUL:
         question = {
             "type": "noul",
@@ -34,19 +42,51 @@ def build_request(rubric: Rubric, evidence: Evidence, model: str = MODEL) -> dic
     return {"model": model, "state": evidence.state, "questions": {QUESTION_ID: question}}
 
 
+def item_question_id(question_id: str, index: int) -> str:
+    return f"{question_id}_{index}"
+
+
+def build_item_request(rubric: Rubric, evidence: Evidence, model: str = MODEL) -> dict:
+    spec = rubric.jev_items
+    items = evidence.state.get(spec.items) or []
+    if not items:
+        raise JudgeError(f"{rubric.id}: slice has no {spec.items!r} to ask about")
+    questions = {
+        item_question_id(qid, i): {
+            "type": "noul",
+            "instructions": f"{q.instructions}\n\n{json.dumps(item, ensure_ascii=False, indent=1)}",
+            "criteria": {"true": q.true, "false": q.false},
+        }
+        for i, item in enumerate(items)
+        for qid, q in spec.questions.items()
+    }
+    state = {k: evidence.state[k] for k in spec.context if evidence.state.get(k) is not None}
+    return {"model": model, "state": state, "questions": questions}
+
+
+def _item_answers(rubric: Rubric, evidence: Evidence, answers: dict) -> list[dict[str, float]]:
+    spec = rubric.jev_items
+    n = len(evidence.state[spec.items])
+    return [{qid: float(answers[item_question_id(qid, i)]["noul"]) for qid in spec.questions} for i in range(n)]
+
+
 def parse_response(
     rubric: Rubric, trace_id: str, evidence: Evidence, body: dict, latency_s: float, model: str = MODEL
 ) -> Verdict:
     try:
-        answer = body["answers"][QUESTION_ID]
         input_tokens = int(body.get("usage", {}).get("input_tokens", 0))
-        if rubric.kind is Kind.NOUL:
+        if rubric.jev_items:
+            items = _item_answers(rubric, evidence, body["answers"])
+            label, probabilities, confidence = AGGREGATES[rubric.jev_items.aggregate](items)
+        elif rubric.kind is Kind.NOUL:
+            answer = body["answers"][QUESTION_ID]
             p = float(answer["noul"])
             probabilities = {"yes": p, "no": 1 - p}
             label = "yes" if p >= 0.5 else "no"
             # Distance from the coin-flip point: 0.5 threshold <=> p outside [0.25, 0.75].
             confidence = abs(2 * p - 1)
         else:
+            answer = body["answers"][QUESTION_ID]
             probabilities = {k: float(v) for k, v in answer["probabilities"].items()}
             label = answer["choice"]
             confidence = float(answer["confidence"])

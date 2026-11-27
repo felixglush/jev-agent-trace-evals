@@ -20,6 +20,14 @@ def test_slices_round_trip(store):
         assert store.get_slice("fx_retry", "r", 1) == result
 
 
+def test_reloading_a_trace_drops_its_cached_slices(store):
+    store.put_slice("fx_retry", "r", 1, Missing("old"))
+    store.put_slice("fx_cleanup", "r", 1, Missing("kept"))
+    store.put_trace(*snapshot.read(FIXTURES / "fx_retry.json"))
+    assert store.get_slice("fx_retry", "r", 1) is None
+    assert store.get_slice("fx_cleanup", "r", 1) == Missing("kept")
+
+
 def test_scores_keep_both_judges_per_pair(store):
     v = Verdict("fx_retry", "task_type", JudgeName.JEV, "feature", 0.9, "v1", {"feature": 0.9}, (1,))
     store.put_scores("run", [v, Verdict("fx_retry", "task_type", JudgeName.CLAUDE_AGENT, "feature", 0.8, "v1")])

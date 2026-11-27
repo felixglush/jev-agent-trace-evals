@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from s1evals import analysis
 from s1evals import rubrics as rubrics_mod
 from s1evals import slices as slices_mod
 from s1evals.domain import Decided, Evidence, JudgeName, Missing
@@ -132,6 +133,49 @@ def create_app(store: Store, rubrics_dir: Path, author: str) -> FastAPI:
             "rubrics": rubric_rows,
             "note": note.comment if note else "",
         }
+
+    @app.get("/api/review")
+    def review(run_id: str | None = None) -> dict:
+        """Every Jev answer in a run next to the slow judges' labels and any
+        human label, for reviewing where and how confidently Jev goes wrong."""
+        run_id = latest_run(run_id)
+        if not run_id:
+            return {"run_id": None, "rows": []}
+        by = analysis.index([v for _, v in store.scores(run_id=run_id)])
+        human = {(f.trace_id, f.rubric_id): f.human_label for f in store.feedback() if f.author == author}
+        rs = rubrics()
+        rows = []
+        for (trace_id, rubric_id), v in sorted(by[JudgeName.JEV].items()):
+            agent = by[JudgeName.CLAUDE_AGENT].get((trace_id, rubric_id))
+            on_slice = by[JudgeName.CLAUDE_SLICE].get((trace_id, rubric_id))
+            rubric = rs.get(rubric_id)
+            rows.append(
+                {
+                    "trace_id": trace_id,
+                    "rubric_id": rubric_id,
+                    "jev": v.label,
+                    "confidence": v.confidence,
+                    "probabilities": v.probabilities,
+                    "agent": agent.label if agent else None,
+                    "claude_slice": on_slice.label if on_slice else None,
+                    "human": human.get((trace_id, rubric_id)),
+                    "agrees": agent is not None and agent.label == v.label,
+                    "kept": rubric is not None and v.confidence is not None and v.confidence >= rubric.threshold,
+                }
+            )
+        return {"run_id": run_id, "rows": rows}
+
+    @app.get("/api/thresholds")
+    def thresholds(run_id: str | None = None, target: float = 0.85) -> dict:
+        """Per-rubric ROC of Jev's confidence against the agent's labels, and
+        the routing threshold that would meet `target` agreement."""
+        run_id = latest_run(run_id)
+        if not run_id:
+            return {"run_id": None, "target": target, "overall": None, "by_rubric": {}}
+        by = analysis.index([v for _, v in store.scores(run_id=run_id)])
+        reference = {k: v.label for k, v in by[JudgeName.CLAUDE_AGENT].items()}
+        current = {rid: r.threshold for rid, r in rubrics().items()}
+        return {"run_id": run_id, **analysis.tune_thresholds(by[JudgeName.JEV], reference, target, current)}
 
     @app.get("/api/traces/{trace_id}/events/{seq}")
     def event(trace_id: str, seq: int) -> dict:

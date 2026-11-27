@@ -69,16 +69,50 @@
   .ev.collapsed .body { max-height: 3.2em; overflow: hidden; }
   .ev .err { color: var(--bad); }
   .empty { padding: 24px; color: var(--muted); }
+  .tabs button.on { border-color: var(--accent); color: var(--accent); }
+  .layout.review { grid-template-columns: 330px minmax(420px, 1fr) minmax(360px, 1fr); }
+  #review-controls { position: sticky; top: 0; background: var(--panel); padding: 8px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 6px; font-size: 12px; z-index: 1; }
+  #review-controls select { width: 100%; }
+  .rv { padding: 7px 10px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 12.5px; }
+  .rv:hover { background: var(--bg); }
+  .rv.active { background: var(--user); }
+  .rv .line { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+  .rv .wrong { color: var(--bad); font-weight: 600; }
+  .rv .right { color: var(--ok); font-weight: 600; }
+  .layout.thresholds { grid-template-columns: minmax(480px, 680px) 1fr; }
+  .layout.thresholds #events { display: none; }
+  #thr-controls { position: sticky; top: 0; background: var(--panel); padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 12px; display: grid; gap: 4px; }
+  table.thr { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.thr th, table.thr td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  table.thr th:first-child, table.thr td:first-child { text-align: left; }
+  table.thr th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--panel); }
+  table.thr tr.sel td { background: var(--user); }
+  table.thr tbody tr { cursor: pointer; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; margin: 12px 16px; }
+  .chart { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; position: relative; }
+  .chart h4 { margin: 0 0 2px; font-size: 13px; }
+  .chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .chart .axis { stroke: var(--line); } .chart .grid { stroke: var(--line); stroke-dasharray: 2 3; }
+  .chart .ref { stroke: var(--muted); stroke-dasharray: 4 4; stroke-width: 1; }
+  .chart .curve { fill: none; stroke: var(--accent); stroke-width: 2; }
+  .chart .pt { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }
+  .chart .pt.cur { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+  .chart .pt.sug { fill: var(--ok); }
+  .chart .hit { fill: transparent; cursor: crosshair; }
+  .chart text { fill: var(--muted); font-size: 10px; }
+  .chart .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 7px; font-size: 11.5px; box-shadow: 0 2px 6px rgba(0,0,0,.12); display: none; white-space: nowrap; }
+  .prose { margin: 12px 16px; font-size: 13px; max-width: 760px; }
   kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
 </style>
 </head>
 <body>
 <header>
   <h1>Trace Annotator</h1>
+  <span class="tabs"><button id="tab-traces" class="on">Traces</button> <button id="tab-review">Review Jev</button> <button id="tab-thresholds">Thresholds</button></span>
   <label class="muted">Run <select id="run"></select></label>
   <span class="muted" id="who"></span>
   <span class="spacer"></span>
-  <span class="muted"><kbd>j</kbd>/<kbd>k</kbd> next/prev trace</span>
+  <span class="muted"><kbd>j</kbd>/<kbd>k</kbd> next/prev</span>
 </header>
 <div class="layout">
   <nav class="pane" id="traces"></nav>
@@ -87,7 +121,9 @@
 </div>
 <script>
 const JUDGES = [["jev", "Jev · slice"], ["claude_slice", "Claude · slice"], ["claude_agent", "Claude agent · full trace"]];
-const state = { traces: [], current: null, data: null, run: null, focus: null };
+const state = { traces: [], current: null, data: null, run: null, focus: null, mode: "traces", review: [], thr: null };
+const thrView = { target: 0.85, rubric: "_overall" };
+const reviewFilter = { rubric: "", onlyWrong: true, onlyKept: false };
 const $ = (sel, el = document) => el.querySelector(sel);
 const h = (tag, attrs = {}, ...kids) => {
   const el = document.createElement(tag);
@@ -107,7 +143,12 @@ async function init() {
   sel.append(...meta.runs.map(r => h("option", { value: r }, r)));
   state.run = meta.runs.at(-1) || null;
   if (state.run) sel.value = state.run;
-  sel.onchange = () => { state.run = sel.value; if (state.current) openTrace(state.current); };
+  sel.onchange = async () => { state.run = sel.value; if (state.mode === "review") await loadReview();
+    if (state.mode === "thresholds") return loadThresholds();
+    if (state.current) openTrace(state.current, state.focus); };
+  $("#tab-traces").onclick = () => setMode("traces");
+  $("#tab-review").onclick = () => setMode("review");
+  $("#tab-thresholds").onclick = () => setMode("thresholds");
   await loadTraces();
   const fromHash = decodeURIComponent(location.hash.slice(1));
   openTrace(state.traces.some(t => t.trace_id === fromHash) ? fromHash : state.traces[0]?.trace_id);
@@ -118,7 +159,166 @@ async function loadTraces() {
   renderTraceList();
 }
 
+async function setMode(mode) {
+  state.mode = mode;
+  $("#tab-traces").classList.toggle("on", mode === "traces");
+  $("#tab-review").classList.toggle("on", mode === "review");
+  $("#tab-thresholds").classList.toggle("on", mode === "thresholds");
+  $(".layout").classList.toggle("review", mode === "review");
+  $(".layout").classList.toggle("thresholds", mode === "thresholds");
+  if (mode === "review") { await loadReview(); if (state.data) { renderRubrics(); renderEvents(); } }
+  else if (mode === "thresholds") await loadThresholds();
+  else { renderTraceList(); if (state.data) { renderRubrics(); renderEvents(); } }
+}
+
+async function loadReview() {
+  const res = await api("/api/review" + (state.run ? `?run_id=${encodeURIComponent(state.run)}` : ""));
+  state.review = res.rows;
+  renderReview();
+}
+
+function reviewRows() {
+  return state.review
+    .filter(r => (!reviewFilter.rubric || r.rubric_id === reviewFilter.rubric) && (!reviewFilter.onlyWrong || (r.agent !== null && !r.agrees))
+      && (!reviewFilter.onlyKept || r.kept))
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+}
+
+// Jev's answers next to the slow judges, most confident first, so confident mistakes come up first.
+function renderReview() {
+  const nav = $("#traces");
+  const byRubric = {};
+  for (const r of state.review) {
+    const c = byRubric[r.rubric_id] ||= { n: 0, wrong: 0 };
+    if (r.agent === null) continue;
+    c.n++; if (!r.agrees) c.wrong++;
+  }
+  const rubricSel = h("select", {}, h("option", { value: "" }, "All rubrics"),
+    Object.entries(byRubric).sort((a, b) => b[1].wrong / b[1].n - a[1].wrong / a[1].n)
+      .map(([id, c]) => h("option", { value: id }, `${id} — ${c.wrong}/${c.n} disagree`)));
+  rubricSel.value = reviewFilter.rubric;
+  rubricSel.onchange = () => { reviewFilter.rubric = rubricSel.value; renderReview(); };
+  const box = (key, label) => { const cb = h("input", { type: "checkbox" }); cb.checked = reviewFilter[key];
+    cb.onchange = () => { reviewFilter[key] = cb.checked; renderReview(); }; return h("label", {}, cb, " ", label); };
+  const rows = reviewRows();
+  const controls = h("div", { id: "review-controls" }, rubricSel,
+    h("div", {}, box("onlyWrong", "only where Jev ≠ agent"), "  ", box("onlyKept", "only answers Jev kept (conf ≥ threshold)")),
+    h("div", { class: "muted" }, `${rows.length} answers, most confident first`));
+  nav.replaceChildren(controls, ...rows.map(r => h("div", {
+    class: "rv" + (r.trace_id === state.current && r.rubric_id === state.focus ? " active" : ""),
+    onclick: () => openTrace(r.trace_id, r.rubric_id),
+  },
+    h("div", { class: "line" }, h("b", {}, r.rubric_id), h("span", { class: "muted" }, r.trace_id.slice(0, 8)),
+      h("span", { class: `pill ${r.kept ? "ok" : "warn"}` }, r.kept ? "kept by Jev" : "sent to agent")),
+    h("div", { class: "line" }, "Jev ", h("span", { class: r.agrees ? "right" : "wrong" }, r.jev),
+      ` p ${fmt(r.probabilities[r.jev])} · conf ${fmt(r.confidence)}`,
+      " · agent ", h("b", {}, r.agent ?? "–"), " · Claude slice ", h("b", {}, r.claude_slice ?? "–"),
+      r.human ? [" · you ", h("b", {}, r.human)] : null),
+  )));
+}
+
+// ---- Thresholds: per-rubric ROC of Jev's confidence against the agent, and the threshold each target implies.
+async function loadThresholds() {
+  const q = new URLSearchParams({ target: thrView.target });
+  if (state.run) q.set("run_id", state.run);
+  state.thr = await api("/api/thresholds?" + q);
+  renderThresholds();
+}
+
+const pct = x => x === null || x === undefined ? "–" : `${Math.round(x * 100)}%`;
+const thrFmt = t => t === null || t === undefined ? "none" : t === 0 ? "keep all" : Number(t).toFixed(2);
+
+function thrRow(id, r) {
+  return { id, ...r, sugRow: r.sweep.find(s => s.threshold === r.suggested) || null };
+}
+
+function renderThresholds() {
+  const t = state.thr;
+  const nav = $("#traces"), main = $("#rubrics");
+  if (!t || !t.overall) { nav.replaceChildren(h("div", { class: "empty" }, "No scored run.")); main.replaceChildren(); return; }
+  const target = h("select", {}, [0.8, 0.85, 0.9, 0.95].map(x => h("option", { value: x }, `${Math.round(x * 100)}% agreement`)));
+  target.value = String(thrView.target);
+  target.onchange = () => { thrView.target = Number(target.value); loadThresholds(); };
+  const rows = [thrRow("_overall", t.overall), ...Object.entries(t.by_rubric).map(([id, r]) => thrRow(id, r))];
+  const body = rows.map(r => h("tr", { class: r.id === thrView.rubric ? "sel" : "", onclick: () => { thrView.rubric = r.id; renderThresholds(); } },
+    h("td", {}, r.id === "_overall" ? h("b", {}, "all rubrics (one threshold)") : r.id),
+    h("td", {}, r.n), h("td", {}, pct(r.accuracy)), h("td", {}, fmt(r.auroc)),
+    h("td", {}, r.current === null ? "–" : `${fmt(r.current)} · ${pct(r.current_coverage)}`),
+    h("td", {}, r.suggested === null ? h("span", { class: "pill bad" }, "can't reach") : `${thrFmt(r.suggested)} · ${pct(r.sugRow?.coverage)}`),
+    h("td", {}, `${pct(r.held_out.coverage)} @ ${pct(r.held_out.accuracy_kept)}`)));
+  nav.replaceChildren(
+    h("div", { id: "thr-controls" }, h("label", {}, "Target on kept answers ", target),
+      h("div", { class: "muted" }, "Confidence is scored as a detector of Jev agreeing with the agent. Suggested = the lowest threshold that meets the target, keeping ≥10 answers. Held-out tunes on half the traces and scores the other half.")),
+    h("table", { class: "thr" },
+      h("thead", {}, h("tr", {}, ["Rubric", "n", "Jev acc", "AUROC", "Now · kept", "Suggested · kept", "Held-out kept @ acc"].map(x => h("th", {}, x)))),
+      h("tbody", {}, body)));
+  const sel = rows.find(r => r.id === thrView.rubric) || rows[0];
+  const name = sel.id === "_overall" ? "All rubrics" : sel.id;
+  main.replaceChildren(
+    h("div", { class: "prose" }, h("b", {}, name), ` · ${sel.n} Jev answers, ${pct(sel.accuracy)} agree with the agent. `,
+      sel.suggested === null ? `No threshold reaches ${pct(t.target)} on this sample.` :
+        `To reach ${pct(t.target)}, keep answers with confidence ≥ ${thrFmt(sel.suggested)}: that keeps ${pct(sel.sugRow.coverage)} (${sel.sugRow.kept}) at ${pct(sel.sugRow.accuracy_kept)}, 95% CI ${pct(sel.sugRow.interval[0])}–${pct(sel.sugRow.interval[1])}.`,
+      sel.id !== "_overall" ? [" ", h("a", { href: "#", onclick: e => { e.preventDefault(); reviewFilter.rubric = sel.id; setMode("review"); } }, "Review its answers →")] : null),
+    h("div", { class: "charts" }, rocChart(sel), coverageChart(sel, t.target)));
+}
+
+// A small single-series line chart with hover readout. pts: [{x, y, tip, cls}]
+function lineChart(title, sub, xLabel, yLabel, pts, extras) {
+  const W = 360, H = 260, L = 50, R = 10, T = 8, B = 30;
+  const sx = x => L + x * (W - L - R), sy = y => T + (1 - y) * (H - T - B);
+  const ns = "http://www.w3.org/2000/svg";
+  const el = (tag, a) => { const e = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": title });
+  for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+    svg.append(el("line", { class: "grid", x1: sx(0), x2: sx(1), y1: sy(v), y2: sy(v) }));
+    const ty = el("text", { x: L - 4, y: sy(v) + 3, "text-anchor": "end" }); ty.textContent = pct(v); svg.append(ty);
+    const tx = el("text", { x: sx(v), y: H - B + 13, "text-anchor": "middle" }); tx.textContent = pct(v); svg.append(tx);
+  }
+  svg.append(el("line", { class: "axis", x1: sx(0), x2: sx(1), y1: sy(0), y2: sy(0) }));
+  const xl = el("text", { x: sx(0.5), y: H - 2, "text-anchor": "middle" }); xl.textContent = xLabel; svg.append(xl);
+  const yl = el("text", { x: 0, y: 0, transform: `translate(10 ${sy(0.5)}) rotate(-90)`, "text-anchor": "middle" }); yl.textContent = yLabel; svg.append(yl);
+  extras(svg, el, sx, sy);
+  const line = pts.filter(p => p.y !== null);
+  svg.append(el("polyline", { class: "curve", points: line.map(p => `${sx(p.x)},${sy(p.y)}`).join(" ") }));
+  const tip = h("div", { class: "tip" });
+  const box = h("div", { class: "chart" }, h("h4", {}, title), h("div", { class: "muted" }, sub), svg, tip);
+  for (const p of line) {
+    if (p.cls) svg.append(el("circle", { class: `pt ${p.cls}`, cx: sx(p.x), cy: sy(p.y), r: 5 }));
+    const hit = el("circle", { class: "hit", cx: sx(p.x), cy: sy(p.y), r: 9 });
+    hit.addEventListener("mouseenter", () => {
+      tip.textContent = p.tip; tip.style.display = "block";
+      const b = svg.getBoundingClientRect(), k = b.width / W;
+      const x = sx(p.x) * k; tip.style.left = x > b.width / 2 ? "auto" : `${x + 26}px`; tip.style.right = x > b.width / 2 ? `${b.width - x + 2}px` : "auto"; tip.style.top = `${sy(p.y) * k + 20}px`;
+    });
+    hit.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+    svg.append(hit);
+  }
+  return box;
+}
+
+function rocChart(r) {
+  const near = t => r.roc.reduce((best, p) => p.threshold !== null && (best === null || Math.abs(p.threshold - t) < Math.abs(best.threshold - t)) ? p : best, null);
+  const cur = r.current === null ? null : r.roc.filter(p => p.threshold !== null && p.threshold >= r.current).at(-1) || null;
+  const sug = r.suggested === null ? null : near(r.suggested);
+  const pts = r.roc.map(p => ({ x: p.fpr, y: p.tpr, cls: p === sug ? "sug" : p === cur ? "cur" : null,
+    tip: p.threshold === null ? "keep nothing" : `conf ≥ ${fmt(p.threshold)}: keeps ${pct(p.tpr)} of right, ${pct(p.fpr)} of wrong answers` }));
+  return lineChart("ROC of confidence", `AUROC ${fmt(r.auroc)}. Dashed = chance. ● green = suggested, ○ = current.`,
+    "wrong answers kept (FPR)", "right answers kept (TPR)", pts,
+    (svg, el, sx, sy) => svg.append(el("line", { class: "ref", x1: sx(0), y1: sy(0), x2: sx(1), y2: sy(1) })));
+}
+
+function coverageChart(r, target) {
+  const pts = r.sweep.filter(s => s.kept > 0).map(s => ({ x: s.coverage, y: s.accuracy_kept,
+    cls: s.threshold === r.suggested ? "sug" : null,
+    tip: `conf ≥ ${fmt(s.threshold)}: keeps ${s.kept} (${pct(s.coverage)}) at ${pct(s.accuracy_kept)}` }));
+  return lineChart("Agreement vs share kept", `What each threshold keeps on the fast path. Dashed = ${pct(target)} target.`,
+    "share of answers kept on the fast path", "agreement on kept answers", pts,
+    (svg, el, sx, sy) => svg.append(el("line", { class: "ref", x1: sx(0), x2: sx(1), y1: sy(target), y2: sy(target) })));
+}
+
 function renderTraceList() {
+  if (state.mode === "review") return renderReview();
+  if (state.mode === "thresholds") return renderThresholds();
   const nav = $("#traces");
   nav.replaceChildren(...state.traces.map(t => h("div", {
     class: "t" + (t.trace_id === state.current ? " active" : ""), onclick: () => openTrace(t.trace_id),
@@ -130,13 +330,17 @@ function renderTraceList() {
   )));
 }
 
-async function openTrace(id) {
+async function openTrace(id, focus = null) {
   if (!id) return;
-  state.current = id; state.focus = null;
+  state.current = id; state.focus = focus;
   location.hash = encodeURIComponent(id);
   renderTraceList();
-  state.data = await api(`/api/traces/${encodeURIComponent(id)}` + (state.run ? `?run_id=${encodeURIComponent(state.run)}` : ""));
+  const data = await api(`/api/traces/${encodeURIComponent(id)}` + (state.run ? `?run_id=${encodeURIComponent(state.run)}` : ""));
+  if (state.current !== id) return;  // a later click won the race
+  state.data = data;
+  if (state.mode === "thresholds") return;  // the charts own the main pane; shown again on leaving the tab
   renderRubrics(); renderEvents();
+  if (focus) document.getElementById(`card-${focus}`)?.scrollIntoView({ block: "start" });
 }
 
 const fmt = x => x === null || x === undefined ? "–" : Number(x).toFixed(2);
@@ -160,7 +364,8 @@ function judgeCell(rubric, judge, title) {
   for (const [lab, p] of probs) cell.append(h("div", { class: "bar" }, h("span", {}, lab),
     h("div", { class: "track" }, h("div", { class: "fill", style: `width:${(p * 100).toFixed(0)}%` })), h("span", {}, fmt(p))));
   if (v.explanation) cell.append(h("div", { class: "expl" }, v.explanation));
-  if (v.evidence_ref?.length) cell.append(h("div", { class: "refs" }, "seq ", v.evidence_ref.map(s => h("a", { onclick: () => jump(s) }, s))));
+  const refs = [...new Set(v.evidence_ref || [])].sort((a, b) => a - b);
+  if (refs.length) cell.append(h("div", { class: "refs" }, "seq ", refs.map(s => h("a", { onclick: () => jump(s) }, s))));
   cell.append(h("div", { class: "muted" }, `$${(v.cost_usd || 0).toFixed(5)} · ${fmt(v.latency_s)}s`));
   return cell;
 }
@@ -232,7 +437,8 @@ async function post(body, flag) {
     await api("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     flag.textContent = "saved ✓";
     const t = state.traces.find(t => t.trace_id === state.current);
-    if (t) { const fresh = await api("/api/traces"); state.traces = fresh; renderTraceList(); }
+    if (state.mode === "review") await loadReview();
+    else if (t) { state.traces = await api("/api/traces"); renderTraceList(); }
   } catch (e) { flag.textContent = "save failed: " + e.message; }
 }
 
@@ -283,6 +489,14 @@ function jump(seq) {
 
 document.addEventListener("keydown", (e) => {
   if (["TEXTAREA", "SELECT", "INPUT"].includes(document.activeElement.tagName)) return;
+  if (state.mode === "thresholds") return;
+  if (state.mode === "review") {
+    const rows = reviewRows();
+    const i = rows.findIndex(r => r.trace_id === state.current && r.rubric_id === state.focus);
+    const next = e.key === "j" ? rows[i + 1] : e.key === "k" ? rows[i - 1] : null;
+    if (next) openTrace(next.trace_id, next.rubric_id);
+    return;
+  }
   const i = state.traces.findIndex(t => t.trace_id === state.current);
   if (e.key === "j" && i < state.traces.length - 1) openTrace(state.traces[i + 1].trace_id);
   if (e.key === "k" && i > 0) openTrace(state.traces[i - 1].trace_id);

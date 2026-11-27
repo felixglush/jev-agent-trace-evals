@@ -6,6 +6,7 @@ labels, so the same numbers come out of the CLI, the experiment log and tests.
 
 from __future__ import annotations
 
+import math
 import statistics
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -52,6 +53,7 @@ class RunMetrics:
     cost: dict[str, dict]
     gate1: dict[str, dict]
     label_distribution: dict[str, dict[str, Counter]] = field(default_factory=dict)
+    confidence_quality: dict = field(default_factory=dict)
 
 
 def index(verdicts: list[Verdict]) -> dict[JudgeName, dict[Key, Verdict]]:
@@ -125,6 +127,7 @@ def compute(
         routes_by_rubric=dict(routes_by_rubric),
         calibration=calibration(by[JudgeName.JEV], agent_ref),
         confident_errors=confident_errors(by[JudgeName.JEV], agent_ref),
+        confidence_quality=confidence_quality(by[JudgeName.JEV], agent_ref),
         cost=cost_summary(verdicts),
         gate1=gate1(rubrics, slices, labels[SLICE_PIPELINE], agent_ref),
         label_distribution={
@@ -151,6 +154,159 @@ def calibration(fast: dict[Key, Verdict], reference: dict[Key, str]) -> list[dic
             }
         )
     return rows
+
+
+TUNE_MIN_KEPT = 10  # a threshold must keep this many answers before its accuracy counts
+COVERAGE_THRESHOLDS = [0.0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+
+def auroc(scored: list[tuple[float, bool]]) -> float | None:
+    """Probability that a right answer has higher confidence than a wrong one
+    (ties count half). None when there are no right or no wrong answers."""
+    right = [c for c, ok in scored if ok]
+    wrong = [c for c, ok in scored if not ok]
+    if not right or not wrong:
+        return None
+    wins = sum((r > w) + 0.5 * (r == w) for r in right for w in wrong)
+    return wins / (len(right) * len(wrong))
+
+
+def confidence_quality(fast: dict[Key, Verdict], reference: dict[Key, str]) -> dict:
+    """How well Jev's confidence separates its right answers from its wrong
+    ones, and what each routing threshold would keep (risk-coverage)."""
+    scored = [
+        (v.confidence, v.label == reference[k], k[1])
+        for k, v in fast.items()
+        if k in reference and v.confidence is not None
+    ]
+    if not scored:
+        return {}
+    coverage = []
+    for t in COVERAGE_THRESHOLDS:
+        kept = [ok for c, ok, _ in scored if c >= t]
+        coverage.append(
+            {
+                "threshold": t,
+                "coverage": len(kept) / len(scored),
+                "accuracy_kept": sum(kept) / len(kept) if kept else None,
+            }
+        )
+    by_rubric = {}
+    for rid in sorted({r for _, _, r in scored}):
+        rows = [(c, ok) for c, ok, r in scored if r == rid]
+        by_rubric[rid] = {"n": len(rows), "accuracy": sum(ok for _, ok in rows) / len(rows), "auroc": auroc(rows)}
+    return {
+        "n": len(scored),
+        "auroc": auroc([(c, ok) for c, ok, _ in scored]),
+        "coverage": coverage,
+        "by_rubric": by_rubric,
+    }
+
+
+def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float] | None:
+    """95% Wilson interval for k successes out of n."""
+    if not n:
+        return None
+    p = k / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return max(0.0, centre - half), min(1.0, centre + half)
+
+
+def roc(scored: list[tuple[float, bool]]) -> list[dict]:
+    """ROC of confidence as a detector of right answers: at each threshold, the
+    share of right answers kept (tpr) against the share of wrong ones kept (fpr)."""
+    right = sum(ok for _, ok in scored)
+    wrong = len(scored) - right
+    points = [{"threshold": None, "tpr": 0.0, "fpr": 0.0}]
+    for t in sorted({c for c, _ in scored}, reverse=True):
+        kept = [ok for c, ok in scored if c >= t]
+        points.append(
+            {
+                "threshold": t,
+                "tpr": sum(kept) / right if right else 0.0,
+                "fpr": (len(kept) - sum(kept)) / wrong if wrong else 0.0,
+            }
+        )
+    return points
+
+
+def sweep(scored: list[tuple[float, bool]]) -> list[dict]:
+    """What each threshold keeps on the fast path, and how often that agrees."""
+    if not scored:
+        return []
+    out = []
+    for t in sorted({0.0, *(c for c, _ in scored)}):
+        kept = [ok for c, ok in scored if c >= t]
+        out.append(
+            {
+                "threshold": t,
+                "kept": len(kept),
+                "coverage": len(kept) / len(scored),
+                "accuracy_kept": sum(kept) / len(kept) if kept else None,
+                "interval": wilson(sum(kept), len(kept)),
+            }
+        )
+    return out
+
+
+def suggest_threshold(scored: list[tuple[float, bool]], target: float, min_kept: int = TUNE_MIN_KEPT) -> float | None:
+    """The lowest threshold whose kept answers agree at least `target` of the
+    time, i.e. the one that keeps the most pairs on the fast path. None if no
+    threshold keeping at least `min_kept` answers reaches the target."""
+    ok = [r["threshold"] for r in sweep(scored) if r["kept"] >= min_kept and r["accuracy_kept"] >= target]
+    return min(ok) if ok else None
+
+
+def _apply(scored: list[tuple[float, bool]], t: float | None) -> tuple[int, int]:
+    kept = [ok for c, ok in scored if t is not None and c >= t]
+    return len(kept), sum(kept)
+
+
+def tune_thresholds(
+    fast: dict[Key, Verdict], reference: dict[Key, str], target: float, current: dict[str, float] | None = None
+) -> dict:
+    """Per-rubric ROC and threshold choice for Jev's confidence against the
+    reference labels. `held_out` tunes on half the traces and scores on the
+    other half (both ways), which shows how much a per-rubric threshold
+    picked on this sample would overfit."""
+    current = current or {}
+    pairs = [
+        (k[0], k[1], v.confidence, v.label == reference[k])
+        for k, v in fast.items()
+        if k in reference and v.confidence is not None
+    ]
+    traces = sorted({t for t, *_ in pairs})
+    fold = {t: i % 2 for i, t in enumerate(traces)}
+
+    def report(rows: list[tuple[str, str, float, bool]], cur: float | None) -> dict:
+        scored = [(c, ok) for _, _, c, ok in rows]
+        held_kept = held_right = 0
+        for f in (0, 1):
+            t = suggest_threshold([(c, ok) for tid, _, c, ok in rows if fold[tid] != f], target, TUNE_MIN_KEPT // 2)
+            k, r = _apply([(c, ok) for tid, _, c, ok in rows if fold[tid] == f], t)
+            held_kept, held_right = held_kept + k, held_right + r
+        cur_kept, cur_right = _apply(scored, cur)
+        return {
+            "n": len(scored),
+            "accuracy": sum(ok for _, ok in scored) / len(scored),
+            "auroc": auroc(scored),
+            "roc": roc(scored),
+            "sweep": sweep(scored),
+            "suggested": suggest_threshold(scored, target),
+            "current": cur,
+            "current_coverage": cur_kept / len(scored),
+            "current_accuracy": cur_right / cur_kept if cur_kept else None,
+            "held_out": {
+                "coverage": held_kept / len(scored),
+                "accuracy_kept": held_right / held_kept if held_kept else None,
+            },
+        }
+
+    by_rubric = {
+        rid: report([p for p in pairs if p[1] == rid], current.get(rid)) for rid in sorted({p[1] for p in pairs})
+    }
+    return {"target": target, "overall": report(pairs, None) if pairs else None, "by_rubric": by_rubric}
 
 
 def confident_errors(fast: dict[Key, Verdict], reference: dict[Key, str], floor: float = 0.8) -> list[dict]:

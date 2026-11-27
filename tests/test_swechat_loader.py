@@ -69,6 +69,35 @@ def test_looks_failed_ignores_zero_failure_counts():
 
     assert looks_failed("1 failed, 20 passed")
     assert looks_failed("10 failed")
-    assert looks_failed("Build failed")
+    assert looks_failed("Build failed\nExit code 1")
+    assert looks_failed("output\nProcess exited with code 2", "exec_command")
+    assert not looks_failed("Process exited with code 0", "exec_command")
+    assert not looks_failed("log: request failed, retrying")  # a bare "failed" in logged text
+    # File reads and searches return content; only the harness's error wrapper is a failure there.
+    assert not looks_failed("12  raise Error('3 failed')\nerror: bad", "Read")
+    assert looks_failed("<tool_use_error>File does not exist.</tool_use_error>", "Read")
+    assert not looks_failed("1\tTraceback (most recent call last):\n2\t  File x", "Read")
+    assert looks_failed("Traceback (most recent call last):\n  File x", "Bash")
     assert not looks_failed("20 passed, 0 failed")
     assert not looks_failed("tests: 12, failed: 0")
+
+
+def test_harness_text_in_the_user_column_is_not_the_user_speaking():
+    rows = [
+        {"turn_number": 1, "turn_type": "user_prompt", "content": "fix the build", "tool_name": None,
+         "tool_call_id": None, "command": None},
+        {"turn_number": 2, "turn_type": "user_prompt", "content": "<command-name>/clear</command-name>",
+         "tool_name": None, "tool_call_id": None, "command": None},
+        {"turn_number": 3, "turn_type": "user_prompt", "content": "[Request interrupted by user]",
+         "tool_name": None, "tool_call_id": None, "command": None},
+    ]  # fmt: skip
+    _, events = map_rows(session("s1"), rows)
+    assert [e.role for e in events] == [Role.USER, Role.SYSTEM, Role.USER]
+
+
+def test_excluded_sessions_leave_a_held_out_continuation():
+    rows = [session(f"s{i}", repo=f"r{i % 4}") for i in range(30)]
+    first = select_sessions(rows, SampleSpec(n=5))
+    both = select_sessions(rows, SampleSpec(n=12))
+    rest = select_sessions(rows, SampleSpec(n=7, exclude=frozenset(r["session_id"] for r in first)))
+    assert [r["session_id"] for r in both] == [r["session_id"] for r in first + rest]

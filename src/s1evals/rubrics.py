@@ -21,6 +21,31 @@ from s1evals.paths import REPO_ROOT
 DEFAULT_DIR = REPO_ROOT / "rubrics"
 
 
+@dataclass(frozen=True)
+class ItemQuestion:
+    """A Noul asked about each item; the item itself is appended to `instructions`."""
+
+    instructions: str
+    true: str
+    false: str
+
+
+@dataclass(frozen=True)
+class JevItems:
+    """Ask Jev about each item of the slice instead of one question over all of them.
+
+    `items` names the list in the slice state, `context` the state fields every
+    item question may read, and `aggregate` the code in judges/aggregate.py
+    that turns the per-item answers into the rubric's label. The slow judges
+    still answer the rubric's own `question` over the whole slice.
+    """
+
+    items: str
+    context: tuple[str, ...]
+    questions: dict[str, ItemQuestion]
+    aggregate: str
+
+
 class Kind(StrEnum):
     CHOICE = "choice"  # pick one of N labels
     NOUL = "noul"  # yes/no statement; labels must be exactly {yes, no}
@@ -47,6 +72,7 @@ class Rubric:
     threshold: float
     admitted: bool
     sufficiency_risk: str
+    jev_items: JevItems | None = None
 
     @property
     def all_labels(self) -> list[str]:
@@ -73,6 +99,7 @@ def parse(raw: dict, origin: str = "<dict>") -> Rubric:
             threshold=float(raw.get("threshold", 0.5)),
             admitted=bool(raw.get("admitted", False)),
             sufficiency_risk=raw.get("sufficiency_risk", "unknown"),
+            jev_items=_jev_items(raw["jev_items"]) if raw.get("jev_items") else None,
         )
     except (KeyError, ValueError, AttributeError) as exc:
         raise ValueError(f"invalid rubric {origin}: {exc}") from exc
@@ -83,7 +110,20 @@ def parse(raw: dict, origin: str = "<dict>") -> Rubric:
     return rubric
 
 
+def _jev_items(raw: dict) -> JevItems:
+    return JevItems(
+        items=raw["items"],
+        context=tuple(raw.get("context") or ()),
+        questions={
+            qid: ItemQuestion(q["instructions"].strip(), str(q["true"]).strip(), str(q["false"]).strip())
+            for qid, q in raw["questions"].items()
+        },
+        aggregate=raw["aggregate"],
+    )
+
+
 def load(directory: Path = DEFAULT_DIR) -> dict[str, Rubric]:
+    from s1evals.judges.aggregate import REGISTRY as AGGREGATES
     from s1evals.slices.extractors import REGISTRY
 
     rubrics: dict[str, Rubric] = {}
@@ -93,5 +133,7 @@ def load(directory: Path = DEFAULT_DIR) -> dict[str, Rubric]:
             raise ValueError(f"rubric id {rubric.id!r} must match its file name {path.name}")
         if rubric.extractor not in REGISTRY:
             raise ValueError(f"rubric {rubric.id}: no extractor named {rubric.extractor!r}")
+        if rubric.jev_items and rubric.jev_items.aggregate not in AGGREGATES:
+            raise ValueError(f"rubric {rubric.id}: no aggregate named {rubric.jev_items.aggregate!r}")
         rubrics[rubric.id] = rubric
     return rubrics

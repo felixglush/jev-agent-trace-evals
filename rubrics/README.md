@@ -14,7 +14,8 @@ One YAML file per rubric. The file name is the rubric id. Seven come from the de
 | `budget_tokens` | Slice token cap. Over budget falls back to the slow judge. |
 | `threshold` | Fast-judge confidence below this falls back to the slow judge. |
 | `admitted` | Whether the rubric passed Gates 1 and 2 and may run on the fast path alone. |
+| `jev_items` | Optional. Instead of one question over the slice, Jev answers Noul `questions` about each entry of the slice list named by `items` (the entry goes in the question), reading the `context` fields as shared state. The function named by `aggregate` in `src/s1evals/judges/aggregate.py` turns the answers into the label. The Claude judges still answer `question`. |
 
-Changing `question`, `labels` or the extractor means bumping `version`. Old scores keep their `judge_version` and stay readable.
+Changing `question`, `labels`, `jev_items` or the extractor means bumping `version`. Old scores keep their `judge_version` and stay readable.
 
 Validate with `uv run s1evals rubrics check`.

@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+# Tool names that run shell commands, across the agents in SWE-chat.
+SHELL_TOOLS = frozenset({"Bash", "bash", "shell", "exec_command", "run_shell_command", "local_shell"})
+
 
 class Role(StrEnum):
     USER = "user"

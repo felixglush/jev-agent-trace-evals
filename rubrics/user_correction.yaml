@@ -1,5 +1,5 @@
 id: user_correction
-version: 1
+version: 4
 source: design-doc
 question: After the first request, did the user have to correct the agent's work or understanding?
 kind: choice
@@ -16,3 +16,18 @@ budget_tokens: 4000
 threshold: 0.5
 admitted: false
 sufficiency_risk: low
+# Jev answers two questions per follow-up; code takes the most severe one
+# (judges/aggregate.py: correction_severity).
+jev_items:
+  items: follow_ups
+  context: [first_request]
+  aggregate: correction_severity
+  questions:
+    corrects:
+      instructions: Does this user message tell the agent that something it did or said is wrong?
+      "true": The user points out a mistake, says the result is not what they wanted, or asks the agent to change or undo something it did.
+      "false": The user approves, says to continue, asks a question, gives information, or makes a new request that does not say earlier work was wrong.
+    redirects:
+      instructions: Does this user message say the agent misunderstood the task or took the wrong approach?
+      "true": The user sends the agent toward a different goal or approach, or asks it to revert its work.
+      "false": The user keeps the agent's direction. Any change asked for is a small adjustment, such as a rename, a different value, or a style fix.
