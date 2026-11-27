@@ -216,8 +216,18 @@ function renderCard(r) {
   return card;
 }
 
-async function save(body, flag) {
+// Each save replaces the whole feedback row, so saves for one (trace, rubric)
+// run one at a time in the order they were made: the latest edit always lands last.
+const saveQueues = {};
+function save(body, flag) {
+  const key = body.trace_id + "\u0000" + body.rubric_id;
   flag.textContent = "saving…";
+  const run = () => post(body, flag);
+  saveQueues[key] = (saveQueues[key] || Promise.resolve()).then(run, run);
+  return saveQueues[key];
+}
+
+async function post(body, flag) {
   try {
     await api("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     flag.textContent = "saved ✓";

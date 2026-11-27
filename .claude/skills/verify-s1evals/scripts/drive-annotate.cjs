@@ -20,7 +20,7 @@ const path = require("path");
   await page.screenshot({ path: path.join(outDir, "1-trace.png") });
 
   await card.locator(".head").click();                       // focus rubric: highlights its evidence
-  const refLink = page.locator(`#card-${rubricId} .refs a`).first();
+  const refLink = page.locator(`#card-${rubricId} .refs a:visible`).first(); // slice refs sit in a collapsed <details> when no run exists
   if (await refLink.count()) await refLink.click();          // jump to an evidence event
   await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(outDir, "2-focused.png") });
