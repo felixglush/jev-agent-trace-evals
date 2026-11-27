@@ -1,0 +1,17 @@
+id: assistant_hedging
+version: 1
+source: judgment-labs-blog
+question: How certain is this assistant message about its claims?
+kind: choice
+scope: item
+labels:
+  certain: The message states its claims flatly, with no qualifiers.
+  mostly_certain: The message is confident overall but qualifies one or two points, for example with "should" or "likely".
+  uncertain: The message hedges most of its claims, guesses, or says it is not sure.
+  no_claims: The message makes no factual claims, for example a bare acknowledgement or a question to the user.
+extractor: assistant_hedging
+evidence: One assistant message, picked deterministically per trace.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: low

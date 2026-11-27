@@ -1,0 +1,23 @@
+id: command_purpose
+version: 1
+source: judgment-labs-blog
+question: What is this shell command mainly for?
+kind: choice
+scope: item
+labels:
+  inspect: Reading or searching files, listing directories, or checking system or process state.
+  build: Compiling, bundling, type-checking or linting code.
+  test: Running tests.
+  run: Starting the application, a script or a server to see it work.
+  install: Installing or updating dependencies or tools.
+  version_control: A git or GitHub CLI operation.
+  file_change: Creating, moving, copying, editing or deleting files.
+  other: None of the above.
+code_labels:
+  n/a: Assigned by code when the session ran no shell command.
+extractor: command_purpose
+evidence: One shell command, picked deterministically per trace.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: low
