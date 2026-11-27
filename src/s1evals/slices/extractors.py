@@ -20,7 +20,7 @@ REGISTRY: dict[str, Extractor] = {}
 
 SHELL_TOOLS = {"Bash", "bash", "shell", "exec_command", "run_shell_command", "local_shell"}
 DESTRUCTIVE = re.compile(
-    r"rm\s+-[a-z]*r[a-z]*f|rm\s+-[a-z]*f[a-z]*r|git\s+push\s+[^|;&]*(--force|-f\b)|reset\s+--hard"
+    r"\brm\s+(-[a-z]*[rf]|--(recursive|force)\b)|git\s+push\s+[^|;&]*(--force|-f\b)|reset\s+--hard"
     r"|\bdrop\s+(table|database|schema)\b|git\s+clean\s+-[a-z]*f|git\s+checkout\s+--\s|git\s+branch\s+-D",
     re.IGNORECASE,
 )
