@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trace Annotator</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #e3e2dc;
+    --accent: #2f5bd3; --ok: #1f7a4d; --warn: #a35a00; --bad: #b3261e;
+    --user: #e8f0ff; --assistant: #f1f7ee; --tool: #f6f3ea; --system: #f0eef6; --hl: #fff2b3;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161615; --panel: #1f1f1d; --ink: #ecebe6; --muted: #9c9b95; --line: #34332f;
+      --accent: #7c9cff; --ok: #5cc28f; --warn: #e0a24a; --bad: #ff7b72;
+      --user: #1d2638; --assistant: #1c2a20; --tool: #2a271f; --system: #26232f; --hl: #4a4220; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; gap: 12px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+  header h1 { font-size: 15px; margin: 0; }
+  header .spacer { flex: 1; }
+  select, textarea, button, input { font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  button { padding: 3px 10px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  .layout { display: grid; grid-template-columns: 240px minmax(420px, 1fr) minmax(360px, 1fr); height: calc(100vh - 45px); }
+  .pane { overflow: auto; border-right: 1px solid var(--line); }
+  #traces .t { padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  #traces .t:hover { background: var(--bg); }
+  #traces .t.active { background: var(--user); }
+  #traces .id { font-family: var(--mono); font-size: 12px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .pill { display: inline-block; padding: 0 7px; border-radius: 10px; font-size: 11px; border: 1px solid var(--line); margin-left: 4px; }
+  .pill.ok { color: var(--ok); border-color: var(--ok); } .pill.warn { color: var(--warn); border-color: var(--warn); }
+  .pill.bad { color: var(--bad); border-color: var(--bad); }
+  #summary { padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  #note { width: 100%; min-height: 48px; margin-top: 6px; padding: 6px; }
+  .card { margin: 12px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .card.focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card h3 { margin: 0; font-size: 14px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .card .head { padding: 10px 12px; cursor: pointer; }
+  .card .q { margin-top: 2px; }
+  .judges { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
+  .judge { padding: 8px 10px; border-right: 1px solid var(--line); min-width: 0; }
+  .judge:last-child { border-right: 0; }
+  .judge .name { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .judge .label { font-weight: 600; font-size: 15px; }
+  .bar { display: grid; grid-template-columns: 90px 1fr 36px; gap: 6px; align-items: center; font-size: 11px; }
+  .bar .track { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--accent); }
+  .expl { font-size: 12px; margin-top: 4px; }
+  .refs a { font-family: var(--mono); font-size: 11px; margin-right: 4px; color: var(--accent); cursor: pointer; }
+  details { border-top: 1px solid var(--line); padding: 6px 12px; }
+  details pre { white-space: pre-wrap; word-break: break-word; font: 12px/1.4 var(--mono); margin: 6px 0; }
+  .fb { border-top: 1px solid var(--line); padding: 8px 12px; display: grid; gap: 6px; }
+  .fb .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .fb textarea { width: 100%; min-height: 34px; padding: 4px 6px; }
+  .saved { color: var(--ok); font-size: 12px; }
+  .labels-def { font-size: 12px; margin: 4px 0 0; padding-left: 16px; }
+  #events .filters { position: sticky; top: 0; background: var(--panel); padding: 8px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; z-index: 1; }
+  .ev { margin: 6px 10px; padding: 6px 8px; border-radius: 6px; border: 1px solid transparent; }
+  .ev.user { background: var(--user); } .ev.assistant { background: var(--assistant); }
+  .ev.tool { background: var(--tool); } .ev.system { background: var(--system); }
+  .ev.ref { border-color: var(--accent); }
+  .ev.flash { background: var(--hl); }
+  .ev .meta { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .ev .body { white-space: pre-wrap; word-break: break-word; font-size: 12.5px; max-height: 220px; overflow: auto; }
+  .ev.collapsed .body { max-height: 3.2em; overflow: hidden; }
+  .ev .err { color: var(--bad); }
+  .empty { padding: 24px; color: var(--muted); }
+  kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Trace Annotator</h1>
+  <label class="muted">Run <select id="run"></select></label>
+  <span class="muted" id="who"></span>
+  <span class="spacer"></span>
+  <span class="muted"><kbd>j</kbd>/<kbd>k</kbd> next/prev trace</span>
+</header>
+<div class="layout">
+  <nav class="pane" id="traces"></nav>
+  <main class="pane" id="rubrics"><div class="empty">Pick a trace.</div></main>
+  <section class="pane" id="events"></section>
+</div>
+<script>
+const JUDGES = [["jev", "Jev · slice"], ["claude_slice", "Claude · slice"], ["claude_agent", "Claude agent · full trace"]];
+const state = { traces: [], current: null, data: null, run: null, focus: null };
+const $ = (sel, el = document) => el.querySelector(sel);
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") el.className = v; else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined && v !== false) el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) if (kid !== null && kid !== undefined) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return el;
+};
+const api = async (path, opts) => { const r = await fetch(path, opts); if (!r.ok) throw new Error(await r.text()); return r.json(); };
+
+async function init() {
+  const meta = await api("/api/meta");
+  $("#who").textContent = `annotating as ${meta.author}`;
+  const sel = $("#run");
+  sel.append(...meta.runs.map(r => h("option", { value: r }, r)));
+  state.run = meta.runs.at(-1) || null;
+  if (state.run) sel.value = state.run;
+  sel.onchange = () => { state.run = sel.value; if (state.current) openTrace(state.current); };
+  await loadTraces();
+  const fromHash = decodeURIComponent(location.hash.slice(1));
+  openTrace(state.traces.some(t => t.trace_id === fromHash) ? fromHash : state.traces[0]?.trace_id);
+}
+
+async function loadTraces() {
+  state.traces = await api("/api/traces");
+  renderTraceList();
+}
+
+function renderTraceList() {
+  const nav = $("#traces");
+  nav.replaceChildren(...state.traces.map(t => h("div", {
+    class: "t" + (t.trace_id === state.current ? " active" : ""), onclick: () => openTrace(t.trace_id),
+  },
+    h("div", { class: "id" }, t.trace_id.slice(0, 18)),
+    h("div", { class: "muted" }, `${t.repo || t.source} · ${t.n_events} ev · ~${Math.round(t.n_tokens / 1000)}k tok`),
+    h("div", {}, t.labelled ? h("span", { class: "pill ok" }, `${t.labelled} labelled`) : h("span", { class: "pill" }, "no labels"),
+      t.has_note ? h("span", { class: "pill" }, "note") : null),
+  )));
+}
+
+async function openTrace(id) {
+  if (!id) return;
+  state.current = id; state.focus = null;
+  location.hash = encodeURIComponent(id);
+  renderTraceList();
+  state.data = await api(`/api/traces/${encodeURIComponent(id)}` + (state.run ? `?run_id=${encodeURIComponent(state.run)}` : ""));
+  renderRubrics(); renderEvents();
+}
+
+const fmt = x => x === null || x === undefined ? "–" : Number(x).toFixed(2);
+
+function routePill(route) {
+  const r = route.route;
+  const cls = r === "fast" || r === "code" ? "ok" : r.includes("low_confidence") ? "warn" : "bad";
+  return h("span", { class: `pill ${cls}`, title: route.reason }, r.replace("fallback:", "fallback · "));
+}
+
+function judgeCell(rubric, judge, title) {
+  const v = rubric.verdicts[judge];
+  const cell = h("div", { class: "judge" }, h("div", { class: "name" }, title));
+  if (!v) {
+    const why = rubric.slice.kind === "decided" && judge !== "claude_agent" ? `code: ${rubric.slice.label}` : "not run";
+    cell.append(h("div", { class: "muted" }, why));
+    return cell;
+  }
+  cell.append(h("div", { class: "label" }, v.label, h("span", { class: "muted" }, `  conf ${fmt(v.confidence)}`)));
+  const probs = Object.entries(v.probabilities || {}).sort((a, b) => b[1] - a[1]);
+  for (const [lab, p] of probs) cell.append(h("div", { class: "bar" }, h("span", {}, lab),
+    h("div", { class: "track" }, h("div", { class: "fill", style: `width:${(p * 100).toFixed(0)}%` })), h("span", {}, fmt(p))));
+  if (v.explanation) cell.append(h("div", { class: "expl" }, v.explanation));
+  if (v.evidence_ref?.length) cell.append(h("div", { class: "refs" }, "seq ", v.evidence_ref.map(s => h("a", { onclick: () => jump(s) }, s))));
+  cell.append(h("div", { class: "muted" }, `$${(v.cost_usd || 0).toFixed(5)} · ${fmt(v.latency_s)}s`));
+  return cell;
+}
+
+function renderRubrics() {
+  const d = state.data, main = $("#rubrics");
+  const t = d.trace;
+  const note = h("textarea", { id: "note", placeholder: "Notes on this whole trace…" });
+  note.value = d.note || "";
+  const noteSaved = h("span", { class: "saved" });
+  note.addEventListener("change", () => save({ trace_id: t.trace_id, rubric_id: "_trace", comment: note.value }, noteSaved));
+  const summary = h("div", { id: "summary" },
+    h("div", {}, h("b", {}, t.trace_id), h("span", { class: "muted" }, `  ${t.repo || ""} · ${t.agent || ""} · ${t.model || ""} · ${t.n_events} events · ~${t.n_tokens} tokens` + (t.outcome ? ` · dataset success ${t.outcome}` : ""))),
+    h("div", { class: "muted" }, d.run_id ? `scores from run ${d.run_id}` : "no scored runs yet: slices only"),
+    note, noteSaved);
+  main.replaceChildren(summary, ...d.rubrics.map(renderCard));
+}
+
+function renderCard(r) {
+  const card = h("div", { class: "card" + (state.focus === r.id ? " focus" : ""), id: `card-${r.id}` });
+  const head = h("div", { class: "head", onclick: () => { state.focus = state.focus === r.id ? null : r.id; renderRubrics(); renderEvents(); } },
+    h("h3", {}, r.id, h("span", { class: "muted" }, `v${r.version} · ${r.source} · ${r.kind}/${r.scope}`),
+      r.route.label ? h("span", { class: "pill" }, `routed: ${r.route.label}`) : null, routePill(r.route)),
+    h("div", { class: "q" }, r.question));
+  card.append(head, h("div", { class: "judges" }, JUDGES.map(([j, title]) => judgeCell(r, j, title))));
+
+  const sl = r.slice;
+  const sliceSummary = sl.kind === "evidence" ? `Slice: ~${sl.tokens} tokens from ${sl.refs.length} events` + (sl.target ? ` (target seq ${sl.target})` : "")
+    : sl.kind === "decided" ? `Slice: decided by code → ${sl.label} (${sl.reason})` : `Slice: missing (${sl.reason})`;
+  const det = h("details", {}, h("summary", {}, sliceSummary),
+    h("div", { class: "muted" }, r.evidence),
+    sl.kind === "evidence" ? h("pre", {}, JSON.stringify(sl.state, null, 1)) : null,
+    sl.refs.length ? h("div", { class: "refs" }, "seq ", sl.refs.map(s => h("a", { onclick: () => jump(s) }, s))) : null,
+    h("ul", { class: "labels-def" }, Object.entries({ ...r.labels, ...r.code_labels }).map(([k, v]) => h("li", {}, h("b", {}, k), `: ${v}`))));
+  card.append(det);
+
+  const fb = r.feedback || {};
+  const select = h("select", {}, h("option", { value: "" }, "— your label —"), r.all_labels.map(l => h("option", { value: l }, l)));
+  select.value = fb.human_label || "";
+  const comment = h("textarea", { placeholder: "Why? What did the judges miss?" });
+  comment.value = fb.comment || "";
+  const saved = h("span", { class: "saved" });
+  const push = () => save({ trace_id: state.current, rubric_id: r.id, human_label: select.value || null, comment: comment.value || null }, saved);
+  select.addEventListener("change", push);
+  comment.addEventListener("change", push);
+  const agree = (j) => { const v = r.verdicts[j]; if (v) { select.value = v.label; push(); } };
+  card.append(h("div", { class: "fb" },
+    h("div", { class: "row" }, select,
+      h("button", { onclick: () => agree("jev"), disabled: !r.verdicts.jev }, "Jev is right"),
+      h("button", { onclick: () => agree("claude_agent"), disabled: !r.verdicts.claude_agent }, "Agent is right"),
+      saved),
+    comment));
+  return card;
+}
+
+// Each save replaces the whole feedback row, so saves for one (trace, rubric)
+// run one at a time in the order they were made: the latest edit always lands last.
+const saveQueues = {};
+function save(body, flag) {
+  const key = body.trace_id + "\u0000" + body.rubric_id;
+  flag.textContent = "saving…";
+  const run = () => post(body, flag);
+  saveQueues[key] = (saveQueues[key] || Promise.resolve()).then(run, run);
+  return saveQueues[key];
+}
+
+async function post(body, flag) {
+  try {
+    await api("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    flag.textContent = "saved ✓";
+    const t = state.traces.find(t => t.trace_id === state.current);
+    if (t) { const fresh = await api("/api/traces"); state.traces = fresh; renderTraceList(); }
+  } catch (e) { flag.textContent = "save failed: " + e.message; }
+}
+
+const filters = { user: true, assistant: true, tool: true, system: true, thinking: false, refsOnly: false };
+
+function focusRefs() {
+  if (!state.focus) return new Set();
+  const r = state.data.rubrics.find(r => r.id === state.focus);
+  const refs = new Set(r.slice.refs);
+  for (const v of Object.values(r.verdicts)) (v.evidence_ref || []).forEach(s => refs.add(s));
+  return refs;
+}
+
+function renderEvents() {
+  const pane = $("#events");
+  const refs = focusRefs();
+  const box = (key, label) => { const cb = h("input", { type: "checkbox" }); cb.checked = filters[key];
+    cb.onchange = () => { filters[key] = cb.checked; renderEvents(); }; return h("label", {}, cb, " ", label); };
+  const bar = h("div", { class: "filters" }, box("user", "user"), box("assistant", "assistant"), box("tool", "tool"),
+    box("system", "system"), box("thinking", "thinking"), state.focus ? box("refsOnly", `only ${state.focus} evidence`) : null);
+  const shown = state.data.events.filter(e => filters[e.role] && (filters.thinking || e.turn_type !== "thinking")
+    && (!filters.refsOnly || !state.focus || refs.has(e.seq)));
+  pane.replaceChildren(bar, ...shown.map(e => {
+    const el = h("div", { class: `ev ${e.role}` + (refs.has(e.seq) ? " ref" : "") + (e.turn_type.startsWith("tool") ? " collapsed" : ""), id: `ev-${e.seq}` },
+      h("div", { class: "meta" }, `#${e.seq} ${e.role}/${e.turn_type}` + (e.tool_name ? ` · ${e.tool_name}` : "") + ` · ${e.tokens} tok `,
+        e.is_error ? h("span", { class: "err" }, "looks failed") : null),
+      e.command ? h("div", { class: "meta" }, `$ ${e.command}`) : null,
+      h("div", { class: "body" }, e.content || "(empty)"));
+    el.addEventListener("click", async () => {
+      el.classList.toggle("collapsed");
+      if (e.truncated && !el.dataset.full) {
+        const full = await api(`/api/traces/${encodeURIComponent(state.current)}/events/${e.seq}`);
+        $(".body", el).textContent = full.content; el.dataset.full = "1";
+      }
+    });
+    return el;
+  }));
+}
+
+function jump(seq) {
+  let el = document.getElementById(`ev-${seq}`);
+  if (!el) { Object.assign(filters, { user: true, assistant: true, tool: true, system: true, thinking: true, refsOnly: false }); renderEvents(); el = document.getElementById(`ev-${seq}`); }
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("collapsed"); el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 1500);
+}
+
+document.addEventListener("keydown", (e) => {
+  if (["TEXTAREA", "SELECT", "INPUT"].includes(document.activeElement.tagName)) return;
+  const i = state.traces.findIndex(t => t.trace_id === state.current);
+  if (e.key === "j" && i < state.traces.length - 1) openTrace(state.traces[i + 1].trace_id);
+  if (e.key === "k" && i > 0) openTrace(state.traces[i - 1].trace_id);
+});
+
+init().catch(e => { $("#rubrics").replaceChildren(h("div", { class: "empty" }, "Failed to load: " + e.message)); });
+</script>
+</body>
+</html>
