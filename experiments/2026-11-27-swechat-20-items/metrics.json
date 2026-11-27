@@ -1,0 +1,228 @@
+{
+  "n_traces": 20,
+  "n_pairs": 40,
+  "agreement_vs_agent": {
+    "jev_pipeline": {
+      "unrecovered_tool_error": {
+        "matched": 6,
+        "total": 19,
+        "rate": 0.3157894736842105
+      },
+      "user_correction": {
+        "matched": 10,
+        "total": 20,
+        "rate": 0.5
+      },
+      "_all": {
+        "matched": 16,
+        "total": 39,
+        "rate": 0.41025641025641024
+      }
+    },
+    "claude_slice_pipeline": {
+      "unrecovered_tool_error": {
+        "matched": 18,
+        "total": 19,
+        "rate": 0.9473684210526315
+      },
+      "user_correction": {
+        "matched": 20,
+        "total": 20,
+        "rate": 1.0
+      },
+      "_all": {
+        "matched": 38,
+        "total": 39,
+        "rate": 0.9743589743589743
+      }
+    },
+    "fast_path": {
+      "unrecovered_tool_error": {
+        "matched": 4,
+        "total": 7,
+        "rate": 0.5714285714285714
+      },
+      "user_correction": {
+        "matched": 3,
+        "total": 3,
+        "rate": 1.0
+      },
+      "_all": {
+        "matched": 7,
+        "total": 10,
+        "rate": 0.7
+      }
+    },
+    "routed": {
+      "unrecovered_tool_error": {
+        "matched": 17,
+        "total": 20,
+        "rate": 0.85
+      },
+      "user_correction": {
+        "matched": 20,
+        "total": 20,
+        "rate": 1.0
+      },
+      "_all": {
+        "matched": 37,
+        "total": 40,
+        "rate": 0.925
+      }
+    }
+  },
+  "agreement_vs_human": {},
+  "routes": {
+    "fast": 7,
+    "fallback:low_confidence": 29,
+    "code": 3,
+    "fallback:over_budget": 1
+  },
+  "fallback_rate": 0.75,
+  "routes_by_rubric": {
+    "unrecovered_tool_error": {
+      "fast": 4,
+      "code": 3,
+      "fallback:low_confidence": 12,
+      "fallback:over_budget": 1
+    },
+    "user_correction": {
+      "fallback:low_confidence": 17,
+      "fast": 3
+    }
+  },
+  "calibration": [
+    {
+      "bucket": "[0.0, 0.5)",
+      "n": 29,
+      "mean_confidence": 0.2793103448275862,
+      "accuracy": 0.3103448275862069
+    },
+    {
+      "bucket": "[0.5, 0.7)",
+      "n": 4,
+      "mean_confidence": 0.595,
+      "accuracy": 0.25
+    },
+    {
+      "bucket": "[0.7, 0.8)",
+      "n": 0,
+      "mean_confidence": null,
+      "accuracy": null
+    },
+    {
+      "bucket": "[0.8, 0.9)",
+      "n": 2,
+      "mean_confidence": 0.87,
+      "accuracy": 1.0
+    },
+    {
+      "bucket": "[0.9, 1.0]",
+      "n": 1,
+      "mean_confidence": 0.9,
+      "accuracy": 1.0
+    }
+  ],
+  "confident_errors": [],
+  "cost": {
+    "claude_agent": {
+      "n": 40,
+      "usd_per_1000": 144.159905,
+      "median_latency_s": 8.958880097249988,
+      "mean_input_tokens": 0.0
+    },
+    "claude_slice": {
+      "n": 36,
+      "usd_per_1000": 54.5833,
+      "median_latency_s": 3.3419916065000166,
+      "mean_input_tokens": 0.0
+    },
+    "jev": {
+      "n": 36,
+      "usd_per_1000": 0.3131508333333334,
+      "median_latency_s": 0.13270982999998182,
+      "mean_input_tokens": 7455.972222222223
+    }
+  },
+  "gate1": {
+    "unrecovered_tool_error": {
+      "n": 20,
+      "evidence": 17,
+      "decided_by_code": 3,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 2973,
+      "slice_tokens_p95": 4001,
+      "bounded": false,
+      "sufficiency": "15/17",
+      "sufficient": false
+    },
+    "user_correction": {
+      "n": 20,
+      "evidence": 20,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 3194,
+      "slice_tokens_p95": 3866,
+      "bounded": true,
+      "sufficiency": "20/20",
+      "sufficient": true
+    }
+  },
+  "label_distribution": {
+    "jev_pipeline": {
+      "unrecovered_tool_error": {
+        "yes": 13,
+        "no": 6
+      },
+      "user_correction": {
+        "major": 11,
+        "none": 5,
+        "minor": 4
+      }
+    },
+    "claude_slice_pipeline": {
+      "unrecovered_tool_error": {
+        "no": 18,
+        "yes": 1
+      },
+      "user_correction": {
+        "major": 6,
+        "minor": 7,
+        "none": 7
+      }
+    },
+    "claude_agent": {
+      "unrecovered_tool_error": {
+        "no": 20
+      },
+      "user_correction": {
+        "major": 6,
+        "minor": 7,
+        "none": 7
+      }
+    },
+    "routed": {
+      "unrecovered_tool_error": {
+        "yes": 3,
+        "no": 17
+      },
+      "user_correction": {
+        "major": 6,
+        "minor": 7,
+        "none": 7
+      }
+    },
+    "fast_path": {
+      "unrecovered_tool_error": {
+        "yes": 3,
+        "no": 4
+      },
+      "user_correction": {
+        "none": 2,
+        "major": 1
+      }
+    }
+  }
+}

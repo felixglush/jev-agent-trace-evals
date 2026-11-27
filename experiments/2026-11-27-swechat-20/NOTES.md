@@ -37,7 +37,7 @@ Sufficiency (Claude on the slice vs Claude on the full trace, ≥95%) passes for
 
 ## Next
 
-1. Split unrecovered_tool_error and user_correction into per-item questions with a code aggregate, and re-run Jev against the same agent labels.
+1. Split unrecovered_tool_error and user_correction into per-item questions with a code aggregate. Done in `2026-11-27-swechat-20-items`: it did not raise agreement (see that run's NOTES.md).
 2. Tighten completion_claim's partial/complete wording, using the TypeSafe skill's question-writing guidance.
 3. Widen the task_type and explicit_constraint slices to all user messages, sized to the budget.
 4. Label a few traces by hand in the annotation app (`s1evals annotate`), so agreement can also be measured against people.
