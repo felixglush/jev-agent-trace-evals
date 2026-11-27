@@ -27,6 +27,6 @@ def test_invalid_and_missing_verdicts_are_reported(rubrics):
         "t1", rs, JudgeName.CLAUDE_AGENT,
     )  # fmt: skip
     assert [v.rubric_id for v in vs] == ["task_type"]
-    assert vs[0].evidence_ref == (1,) and abs(vs[0].cost_usd - 0.4) < 1e-9
+    assert vs[0].evidence_ref == (1,) and abs(vs[0].cost_usd - 1.2) < 1e-9  # whole session cost
     assert ("user_correction", "label 'catastrophic' not in ['none', 'minor', 'major']") in problems
     assert ("user_frustration", "no verdict returned") in problems

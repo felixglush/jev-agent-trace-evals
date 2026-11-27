@@ -197,7 +197,11 @@ def write_log(
 ) -> Path:
     out = out_root / cfg.run_id
     out.mkdir(parents=True, exist_ok=True)
-    verdicts = [v for _, v in store.scores(run_id=cfg.run_id)]
+    # A run id can be resumed with a narrower selection; report only what this config covers.
+    judges = {JudgeName(j) for j in cfg.judges}
+    verdicts = [
+        v for _, v in store.scores(run_id=cfg.run_id) if (v.trace_id, v.rubric_id) in slice_map and v.judge in judges
+    ]
     metrics = analysis.compute(rubrics, slice_map, verdicts, human_labels(store))
 
     config = {
