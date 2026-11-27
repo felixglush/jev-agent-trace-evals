@@ -1,0 +1,18 @@
+id: user_correction
+version: 1
+source: design-doc
+question: After the first request, did the user have to correct the agent's work or understanding?
+kind: choice
+scope: trace
+labels:
+  none: Every follow-up message is a new request, an approval, more information, or a question. The user never says the agent got something wrong.
+  minor: The user asks for small adjustments to work that was otherwise right, such as a rename, a tweak to a value, or a style fix.
+  major: The agent misunderstood the task or went the wrong way, and the user had to redirect it or ask it to undo or revert its work.
+code_labels:
+  none: Assigned by code when the session has only one user message.
+extractor: user_correction
+evidence: Every user message after the first, each preceded by the last ~500 tokens of the assistant message before it.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: low

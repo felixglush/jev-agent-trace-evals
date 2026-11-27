@@ -8,6 +8,7 @@ from pathlib import Path
 
 import click
 
+from s1evals import rubrics as rubrics_mod
 from s1evals.paths import REPO_ROOT
 from s1evals.store import Store
 
@@ -20,11 +21,16 @@ def echo_json(obj) -> None:
 
 @click.group()
 @click.option("--db", type=click.Path(path_type=Path), default=DEFAULT_DB, show_default=True)
+@click.option("--rubrics-dir", type=click.Path(path_type=Path), default=rubrics_mod.DEFAULT_DIR, show_default=True)
 @click.pass_context
-def cli(ctx: click.Context, db: Path) -> None:
+def cli(ctx: click.Context, db: Path, rubrics_dir: Path) -> None:
     """System One evals on coding-agent traces."""
-    ctx.obj = {"store": Store(db)}
+    ctx.obj = {"store": Store(db), "rubrics_dir": rubrics_dir}
 
 
 def store_of(ctx: click.Context) -> Store:
     return ctx.obj["store"]
+
+
+def rubrics_of(ctx: click.Context) -> dict[str, rubrics_mod.Rubric]:
+    return rubrics_mod.load(ctx.obj["rubrics_dir"])

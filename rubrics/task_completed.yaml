@@ -1,0 +1,17 @@
+id: task_completed
+version: 1
+source: design-doc
+question: By the end of the session, did the agent finish what the user asked for?
+kind: choice
+scope: trace
+labels:
+  done: The user's request was carried out and nothing the user asked for is left open.
+  partial: Some of what the user asked for was done and some is clearly left open or broken.
+  not_done: The agent worked on the request but did not achieve it.
+  abandoned: The user stopped the session, dropped the request or switched to something else before the agent finished.
+extractor: task_completed
+evidence: First user request, last user message, last assistant message, and the output of the last git commit if any.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: high (scope may change mid-session; kept on purpose as the sufficiency stress test)

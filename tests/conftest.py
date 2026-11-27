@@ -2,10 +2,16 @@ from pathlib import Path
 
 import pytest
 
+from s1evals import rubrics as rubrics_mod
 from s1evals.loaders import snapshot
 from s1evals.store import Store
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture
+def rubrics():
+    return rubrics_mod.load()
 
 
 @pytest.fixture

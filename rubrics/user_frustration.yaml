@@ -1,0 +1,15 @@
+id: user_frustration
+version: 1
+source: design-doc
+question: Does the user express frustration with the agent at any point in the session?
+kind: noul
+scope: trace
+labels:
+  "yes": The user sounds annoyed, impatient or exasperated with the agent, for example repeating an instruction with emphasis, swearing, using all caps, or saying the agent keeps getting it wrong.
+  "no": The user stays neutral or positive throughout, even when pointing out a mistake calmly.
+extractor: user_frustration
+evidence: All user messages in order, each truncated.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: low

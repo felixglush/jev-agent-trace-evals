@@ -1,0 +1,15 @@
+id: explicit_constraint
+version: 1
+source: judgment-labs-blog
+question: Did the user set a rule for how the work must be done?
+kind: noul
+scope: trace
+labels:
+  "yes": The user states a constraint on method, such as which library, file, style, language or approach to use or avoid, or a step that must or must not happen.
+  "no": The user only says what they want done, not how it must be done.
+extractor: explicit_constraint
+evidence: First three user messages.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: low

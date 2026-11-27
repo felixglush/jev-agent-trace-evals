@@ -1,0 +1,19 @@
+id: task_type
+version: 1
+source: design-doc
+question: What kind of work is the user asking the coding agent to do in this session?
+kind: choice
+scope: trace
+labels:
+  bugfix: The user reports something broken or wrong and wants it fixed.
+  feature: The user wants new behavior, a new capability, or a new file or component built.
+  refactor: The user wants existing code restructured, renamed, cleaned up or migrated without changing what it does.
+  question: The user wants an explanation, an investigation or an answer about the code, not a change to it.
+  config: The user wants setup, build, dependency, CI, deployment or environment settings changed.
+  other: The request is none of the above, such as writing docs or prose, data work, or chat.
+extractor: task_type
+evidence: First one or two user messages.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: low

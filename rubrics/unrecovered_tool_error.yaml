@@ -1,0 +1,17 @@
+id: unrecovered_tool_error
+version: 1
+source: design-doc
+question: Did a tool call fail and the agent never fix or work around that failure?
+kind: noul
+scope: trace
+labels:
+  "yes": At least one failure was left standing. The agent ignored it, gave up on it, or ended the session with it still broken.
+  "no": Every failure was fixed, retried successfully, worked around, or was expected and harmless, such as a search that found nothing.
+code_labels:
+  "no": Assigned by code when no tool result looks failed.
+extractor: unrecovered_tool_error
+evidence: Failed tool results plus the next assistant action after each, and the agent's final message.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: medium (recovery may come much later than the next action)

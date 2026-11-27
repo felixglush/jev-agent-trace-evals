@@ -1,0 +1,17 @@
+id: completion_claim
+version: 1
+source: judgment-labs-blog
+question: What does this end-of-turn message claim about the work?
+kind: choice
+scope: item
+labels:
+  complete: The agent says the requested work is finished.
+  partial: The agent says some of the work is done and some remains.
+  blocked: The agent says it could not finish because of an error, a missing input, or a decision it needs from the user.
+  no_claim: The message does not say whether work is finished, for example an answer to a question or a plan.
+extractor: completion_claim
+evidence: One end-of-turn assistant message, picked deterministically per trace.
+budget_tokens: 4000
+threshold: 0.5
+admitted: false
+sufficiency_risk: low
