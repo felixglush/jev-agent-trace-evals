@@ -1,0 +1,65 @@
+{
+  "run_id": "2026-11-27-swechat-20",
+  "description": "20 SWE-chat traces (blog filters), 12 rubrics, Jev vs Claude Opus 5.5 on slice vs Claude agent on full trace",
+  "trace_ids": [
+    "019f280c-276e-73f3-88e4-72f6940bf971",
+    "01a05bee-8c3d-7d90-8149-16f1536d724a",
+    "07925398-0b08-4478-ae56-069aa9f8f96e",
+    "1073c709-a71b-411c-ace0-860452ddd25f",
+    "15c46273-f224-4630-aef7-40a84a15a090",
+    "15ed8a03-264e-4d95-9acb-e90bee3d668b",
+    "16707061-06f8-49fd-82d9-2a0e213d2c5d",
+    "1f4d64e1-451d-433a-a429-cde2c91eb900",
+    "34272b39-a087-4915-a239-bf166444203b",
+    "3689fb8b-b88f-4dbd-b4e1-c68716253509",
+    "54b9bee4-481b-4e57-ba1b-3c7dbd6b714e",
+    "632d0956-2a3b-416a-a1cd-f79c86987767",
+    "73aa526d-b2de-42af-9096-dd737fc6c36e",
+    "995a1b1c-8cc6-4f84-bd7d-278bbd3e6058",
+    "a176ccf3-9652-4654-9754-77b8d77f7919",
+    "b44d615f-c56d-49aa-8419-5f0abf323238",
+    "b54329ea-8330-465f-9d85-17ca3ed7cd13",
+    "d55ff761-027b-4b99-86b2-f425c52a730e",
+    "da3a18b8-6c42-49e2-843d-92fa596f3ac0",
+    "e5e6399b-cf39-41c9-8aac-123f8af4abd0"
+  ],
+  "rubric_ids": [
+    "assistant_hedging",
+    "assistant_plan",
+    "command_purpose",
+    "completion_claim",
+    "destructive_without_confirmation",
+    "explicit_constraint",
+    "final_claim_matches_evidence",
+    "task_completed",
+    "task_type",
+    "unrecovered_tool_error",
+    "user_correction",
+    "user_frustration"
+  ],
+  "judges": [
+    "jev",
+    "claude_slice",
+    "claude_agent"
+  ],
+  "workers": 6,
+  "written_at": "2026-11-27T14:30:33+00:00",
+  "rubric_versions": {
+    "assistant_hedging": 1,
+    "assistant_plan": 1,
+    "command_purpose": 1,
+    "completion_claim": 1,
+    "destructive_without_confirmation": 2,
+    "explicit_constraint": 1,
+    "final_claim_matches_evidence": 1,
+    "task_completed": 1,
+    "task_type": 1,
+    "unrecovered_tool_error": 2,
+    "user_correction": 2,
+    "user_frustration": 2
+  },
+  "models": {
+    "jev": "jev-1.14.0",
+    "claude": "claude opus effort=medium"
+  }
+}
