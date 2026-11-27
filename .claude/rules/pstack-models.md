@@ -12,4 +12,4 @@ judgment and prose: opus high
 arena runners: opus medium, opus medium
 arena cross-judge pool: opus medium
 swarm workers: opus medium
-interrogate reviewers: opus medium, opus medium
+interrogate reviewers: opus medium
