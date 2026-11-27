@@ -175,6 +175,24 @@ def user_frustration(events: list[Event]) -> SliceResult:
 MAX_FAILURES = 15
 
 
+def rerun_outcome(events: list[Event], failure: Event) -> str | None:
+    """What happened when the exact same command ran again after this failure.
+
+    A fact code can settle, so the judge doesn't have to find the rerun itself.
+    None for tools without a command (an edit, a read).
+    """
+    if not failure.command:
+        return None
+    later = [
+        e
+        for e in events
+        if e.seq > failure.seq and e.turn_type is TurnType.TOOL_RESULT and e.command == failure.command
+    ]
+    if not later:
+        return "not run again"
+    return "failed again" if all(e.is_error for e in later) else "succeeded later"
+
+
 @extractor("unrecovered_tool_error")
 def unrecovered_tool_error(events: list[Event]) -> SliceResult:
     failures = [e for e in events if e.turn_type is TurnType.TOOL_RESULT and e.is_error]
@@ -194,6 +212,7 @@ def unrecovered_tool_error(events: list[Event]) -> SliceResult:
                 "command": head(f.command, 30) if f.command else None,
                 "error_output": head(f.content, cap),
                 "agent_next_action": head(nxt.content, cap) if nxt else "(session ended)",
+                "same_command_later": rerun_outcome(events, f),
             }
         )
         refs += [f.seq] + ([nxt.seq] if nxt else [])
