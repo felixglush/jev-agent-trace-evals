@@ -56,7 +56,9 @@ TURN_MAP: dict[str, tuple[Role, TurnType]] = {
 
 _FAILURE = re.compile(
     r"<tool_use_error>|^\s*error\b|traceback \(most recent call last\)|exit code [1-9]\d*"
-    r"|command not found|no such file or directory|permission denied|\bfailed\b",
+    r"|command not found|no such file or directory|permission denied"
+    # "3 failed" counts, "0 failed" / "failed: 0" do not.
+    r"|(?<!\b0 )\bfailed\b(?!\s*[:=]\s*0\b)",
     re.IGNORECASE | re.MULTILINE,
 )
 

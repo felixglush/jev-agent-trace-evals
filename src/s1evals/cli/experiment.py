@@ -9,12 +9,28 @@ import click
 
 from s1evals import slices
 from s1evals.cli.root import cli, echo_json, rubrics_of, store_of
+from s1evals.domain import Evidence
 from s1evals.experiments import ALL_JUDGES, RunConfig
+from s1evals.judges.jev import JevJudge
 
 
 @cli.group()
 def experiment() -> None:
     """Run judges over traces and write experiment logs."""
+
+
+@cli.command("jev")
+@click.argument("trace_id")
+@click.argument("rubric_id")
+@click.pass_context
+def probe_jev(ctx, trace_id, rubric_id) -> None:
+    """Send one rubric's slice to Jev and print request and verdict."""
+    rubric = rubrics_of(ctx)[rubric_id]
+    result = slices.extract(rubric, store_of(ctx).events(trace_id))
+    if not isinstance(result, Evidence):
+        raise click.ClickException(f"no evidence to send: {result}")
+    verdict, payload = JevJudge().judge(rubric, trace_id, result)
+    echo_json({"request": payload, "verdict": verdict.__dict__})
 
 
 @experiment.command("run")
