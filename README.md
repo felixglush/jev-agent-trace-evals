@@ -49,6 +49,19 @@ uv run pytest -q
 
 Credentials: Jev reads `TYPESAFE_API_KEY` (the cloud sandbox's proxy injects it). Claude judges need the `claude` CLI signed in. SWE-chat is gated: accept the terms on Hugging Face and set `HF_TOKEN`.
 
+## Review Jev's mistakes on your machine
+
+Experiment logs hold labels, not trace text, so you rebuild the traces from SWE-chat and import the labels:
+
+```bash
+export HF_TOKEN=...                                                   # read access to SALT-NLP/SWE-chat
+uv run s1evals load swechat --from-run experiments/2026-11-27-swechat-50   # only these 50 sessions' rows
+uv run s1evals experiment import experiments/2026-11-27-swechat-50
+uv run s1evals annotate --author "$USER"                              # http://127.0.0.1:8765 → Review Jev
+```
+
+**Review Jev** lists every Jev answer next to the Claude agent's (full trace) and Claude-on-slice labels, most confident first. Filter it to one rubric, to disagreements only, or to the answers Jev kept rather than sent to the agent. Click a row to open its trace with that rubric's card in focus: Jev's probabilities and confidence, both Claude labels with their reasons, the slice Jev saw and the events it came from. Each card's label and comment are saved as your feedback, and `experiment report` uses them as human reference labels. <kbd>j</kbd>/<kbd>k</kbd> step through the list.
+
 ## Routing
 
 ```

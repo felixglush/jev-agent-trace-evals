@@ -61,3 +61,19 @@ def test_fast_path_agreement_excludes_fallbacks(rubrics):
     assert m.agreement_vs_agent[analysis.ROUTED]["_all"].rate == 0.5
     assert m.agreement_vs_agent[analysis.FAST_PATH]["_all"].total == 1
     assert m.agreement_vs_agent[analysis.FAST_PATH]["_all"].rate == 0.0
+
+
+def test_auroc_and_coverage_rank_right_answers_above_wrong_ones():
+    from s1evals.analysis import auroc, confidence_quality
+
+    assert auroc([(0.9, True), (0.2, False)]) == 1.0
+    assert auroc([(0.5, True), (0.5, False)]) == 0.5
+    assert auroc([(0.9, True)]) is None
+    fast = {
+        ("t1", "r"): Verdict("t1", "r", JudgeName.JEV, "yes", 0.95, "v"),
+        ("t2", "r"): Verdict("t2", "r", JudgeName.JEV, "yes", 0.2, "v"),
+    }
+    q = confidence_quality(fast, {("t1", "r"): "yes", ("t2", "r"): "no"})
+    assert q["auroc"] == 1.0
+    kept_at_half = next(row for row in q["coverage"] if row["threshold"] == 0.5)
+    assert kept_at_half == {"threshold": 0.5, "coverage": 0.5, "accuracy_kept": 1.0}

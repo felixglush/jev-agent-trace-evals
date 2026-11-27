@@ -46,3 +46,16 @@ def test_feedback_rejects_unknown_label(store):
 
 def test_page_is_served(store):
     assert "Trace Annotator" in client(store).get("/").text
+
+
+def test_review_lists_each_jev_answer_against_the_agent(store):
+    store.put_scores("r9", [
+        Verdict("fx_retry", "task_type", JudgeName.JEV, "question", 0.95, "v"),
+        Verdict("fx_retry", "task_type", JudgeName.CLAUDE_AGENT, "bugfix", 0.9, "v"),
+        Verdict("fx_retry", "task_type", JudgeName.CLAUDE_SLICE, "bugfix", 0.9, "v"),
+    ])  # fmt: skip
+    rows = client(store).get("/api/review", params={"run_id": "r9"}).json()["rows"]
+    assert rows == [{
+        "trace_id": "fx_retry", "rubric_id": "task_type", "jev": "question", "confidence": 0.95, "probabilities": {},
+        "agent": "bugfix", "claude_slice": "bugfix", "human": None, "agrees": False, "kept": True,
+    }]  # fmt: skip

@@ -36,6 +36,7 @@ def metrics_json(m: RunMetrics) -> dict:
         "routes_by_rubric": {r: {str(k): v for k, v in c.items()} for r, c in m.routes_by_rubric.items()},
         "calibration": m.calibration,
         "confident_errors": m.confident_errors,
+        "confidence_quality": m.confidence_quality,
         "cost": m.cost,
         "gate1": m.gate1,
         "label_distribution": {s: {r: dict(c) for r, c in d.items()} for s, d in m.label_distribution.items()},
@@ -94,6 +95,28 @@ def markdown(run_id: str, description: str, rubrics: dict[str, Rubric], m: RunMe
         mc = "–" if row["mean_confidence"] is None else f"{row['mean_confidence']:.2f}"
         acc = "–" if row["accuracy"] is None else f"{row['accuracy']:.2f}"
         out.append(f"| {row['bucket']} | {row['n']} | {mc} | {acc} |")
+
+    q = m.confidence_quality
+    if q:
+        auroc = "–" if q["auroc"] is None else f"{q['auroc']:.2f}"
+        out += [
+            "",
+            "## Does confidence separate right from wrong?",
+            "",
+            f"AUROC of Jev's confidence for agreeing with the agent: {auroc} over {q['n']} answers "
+            "(0.5 is chance, 1.0 is perfect separation). Each row is a routing threshold: the share of "
+            "answers Jev would keep, and how often those agree with the agent.",
+            "",
+            "| Keep if confidence ≥ | Kept | Agreement on kept |",
+            "| --- | --- | --- |",
+        ]
+        for row in q["coverage"]:
+            acc = "–" if row["accuracy_kept"] is None else f"{row['accuracy_kept']:.1%}"
+            out.append(f"| {row['threshold']:.1f} | {row['coverage']:.0%} | {acc} |")
+        out += ["", "| Rubric | n | Jev agreement | AUROC |", "| --- | --- | --- | --- |"]
+        for rid, row in q["by_rubric"].items():
+            a = "–" if row["auroc"] is None else f"{row['auroc']:.2f}"
+            out.append(f"| {rid} | {row['n']} | {row['accuracy']:.0%} | {a} |")
 
     out += ["", f"## Confident errors (Jev confidence ≥ 0.8, disagrees with agent): {len(m.confident_errors)}", ""]
     if m.confident_errors:

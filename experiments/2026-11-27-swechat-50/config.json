@@ -73,7 +73,7 @@
     "claude_agent"
   ],
   "workers": 4,
-  "written_at": "2026-11-27T16:09:20+00:00",
+  "written_at": "2026-11-27T16:22:18+00:00",
   "rubric_versions": {
     "assistant_hedging": 1,
     "assistant_plan": 1,

@@ -52,6 +52,7 @@ class RunMetrics:
     cost: dict[str, dict]
     gate1: dict[str, dict]
     label_distribution: dict[str, dict[str, Counter]] = field(default_factory=dict)
+    confidence_quality: dict = field(default_factory=dict)
 
 
 def index(verdicts: list[Verdict]) -> dict[JudgeName, dict[Key, Verdict]]:
@@ -125,6 +126,7 @@ def compute(
         routes_by_rubric=dict(routes_by_rubric),
         calibration=calibration(by[JudgeName.JEV], agent_ref),
         confident_errors=confident_errors(by[JudgeName.JEV], agent_ref),
+        confidence_quality=confidence_quality(by[JudgeName.JEV], agent_ref),
         cost=cost_summary(verdicts),
         gate1=gate1(rubrics, slices, labels[SLICE_PIPELINE], agent_ref),
         label_distribution={
@@ -151,6 +153,52 @@ def calibration(fast: dict[Key, Verdict], reference: dict[Key, str]) -> list[dic
             }
         )
     return rows
+
+
+COVERAGE_THRESHOLDS = [0.0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+
+def auroc(scored: list[tuple[float, bool]]) -> float | None:
+    """Probability that a right answer has higher confidence than a wrong one
+    (ties count half). None when there are no right or no wrong answers."""
+    right = [c for c, ok in scored if ok]
+    wrong = [c for c, ok in scored if not ok]
+    if not right or not wrong:
+        return None
+    wins = sum((r > w) + 0.5 * (r == w) for r in right for w in wrong)
+    return wins / (len(right) * len(wrong))
+
+
+def confidence_quality(fast: dict[Key, Verdict], reference: dict[Key, str]) -> dict:
+    """How well Jev's confidence separates its right answers from its wrong
+    ones, and what each routing threshold would keep (risk-coverage)."""
+    scored = [
+        (v.confidence, v.label == reference[k], k[1])
+        for k, v in fast.items()
+        if k in reference and v.confidence is not None
+    ]
+    if not scored:
+        return {}
+    coverage = []
+    for t in COVERAGE_THRESHOLDS:
+        kept = [ok for c, ok, _ in scored if c >= t]
+        coverage.append(
+            {
+                "threshold": t,
+                "coverage": len(kept) / len(scored),
+                "accuracy_kept": sum(kept) / len(kept) if kept else None,
+            }
+        )
+    by_rubric = {}
+    for rid in sorted({r for _, _, r in scored}):
+        rows = [(c, ok) for c, ok, r in scored if r == rid]
+        by_rubric[rid] = {"n": len(rows), "accuracy": sum(ok for _, ok in rows) / len(rows), "auroc": auroc(rows)}
+    return {
+        "n": len(scored),
+        "auroc": auroc([(c, ok) for c, ok, _ in scored]),
+        "coverage": coverage,
+        "by_rubric": by_rubric,
+    }
 
 
 def confident_errors(fast: dict[Key, Verdict], reference: dict[Key, str], floor: float = 0.8) -> list[dict]:

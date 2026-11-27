@@ -523,6 +523,114 @@
       "agent": "yes"
     }
   ],
+  "confidence_quality": {
+    "n": 546,
+    "auroc": 0.7310980496927598,
+    "coverage": [
+      {
+        "threshold": 0.0,
+        "coverage": 1.0,
+        "accuracy_kept": 0.7216117216117216
+      },
+      {
+        "threshold": 0.3,
+        "coverage": 0.8589743589743589,
+        "accuracy_kept": 0.7611940298507462
+      },
+      {
+        "threshold": 0.4,
+        "coverage": 0.7655677655677655,
+        "accuracy_kept": 0.7822966507177034
+      },
+      {
+        "threshold": 0.5,
+        "coverage": 0.6721611721611722,
+        "accuracy_kept": 0.8092643051771117
+      },
+      {
+        "threshold": 0.6,
+        "coverage": 0.5879120879120879,
+        "accuracy_kept": 0.8411214953271028
+      },
+      {
+        "threshold": 0.7,
+        "coverage": 0.49633699633699635,
+        "accuracy_kept": 0.8634686346863468
+      },
+      {
+        "threshold": 0.8,
+        "coverage": 0.3992673992673993,
+        "accuracy_kept": 0.8990825688073395
+      },
+      {
+        "threshold": 0.9,
+        "coverage": 0.24175824175824176,
+        "accuracy_kept": 0.9242424242424242
+      }
+    ],
+    "by_rubric": {
+      "assistant_hedging": {
+        "n": 50,
+        "accuracy": 0.84,
+        "auroc": 0.7619047619047619
+      },
+      "assistant_plan": {
+        "n": 50,
+        "accuracy": 0.88,
+        "auroc": 0.8560606060606061
+      },
+      "command_purpose": {
+        "n": 50,
+        "accuracy": 0.96,
+        "auroc": 0.8645833333333334
+      },
+      "completion_claim": {
+        "n": 50,
+        "accuracy": 0.68,
+        "auroc": 0.6259191176470589
+      },
+      "destructive_without_confirmation": {
+        "n": 24,
+        "accuracy": 0.3333333333333333,
+        "auroc": 0.5625
+      },
+      "explicit_constraint": {
+        "n": 50,
+        "accuracy": 0.82,
+        "auroc": 0.6666666666666666
+      },
+      "final_claim_matches_evidence": {
+        "n": 36,
+        "accuracy": 0.8055555555555556,
+        "auroc": 0.7832512315270936
+      },
+      "task_completed": {
+        "n": 50,
+        "accuracy": 0.64,
+        "auroc": 0.6484375
+      },
+      "task_type": {
+        "n": 50,
+        "accuracy": 0.54,
+        "auroc": 0.605475040257649
+      },
+      "unrecovered_tool_error": {
+        "n": 47,
+        "accuracy": 0.6382978723404256,
+        "auroc": 0.7529411764705882
+      },
+      "user_correction": {
+        "n": 42,
+        "accuracy": 0.5238095238095238,
+        "auroc": 0.696590909090909
+      },
+      "user_frustration": {
+        "n": 47,
+        "accuracy": 0.7872340425531915,
+        "auroc": 0.8432432432432433
+      }
+    }
+  },
   "cost": {
     "claude_agent": {
       "n": 600,

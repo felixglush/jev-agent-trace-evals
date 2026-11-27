@@ -69,16 +69,27 @@
   .ev.collapsed .body { max-height: 3.2em; overflow: hidden; }
   .ev .err { color: var(--bad); }
   .empty { padding: 24px; color: var(--muted); }
+  .tabs button.on { border-color: var(--accent); color: var(--accent); }
+  .layout.review { grid-template-columns: 330px minmax(420px, 1fr) minmax(360px, 1fr); }
+  #review-controls { position: sticky; top: 0; background: var(--panel); padding: 8px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 6px; font-size: 12px; z-index: 1; }
+  #review-controls select { width: 100%; }
+  .rv { padding: 7px 10px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 12.5px; }
+  .rv:hover { background: var(--bg); }
+  .rv.active { background: var(--user); }
+  .rv .line { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+  .rv .wrong { color: var(--bad); font-weight: 600; }
+  .rv .right { color: var(--ok); font-weight: 600; }
   kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
 </style>
 </head>
 <body>
 <header>
   <h1>Trace Annotator</h1>
+  <span class="tabs"><button id="tab-traces" class="on">Traces</button> <button id="tab-review">Review Jev</button></span>
   <label class="muted">Run <select id="run"></select></label>
   <span class="muted" id="who"></span>
   <span class="spacer"></span>
-  <span class="muted"><kbd>j</kbd>/<kbd>k</kbd> next/prev trace</span>
+  <span class="muted"><kbd>j</kbd>/<kbd>k</kbd> next/prev</span>
 </header>
 <div class="layout">
   <nav class="pane" id="traces"></nav>
@@ -87,7 +98,8 @@
 </div>
 <script>
 const JUDGES = [["jev", "Jev · slice"], ["claude_slice", "Claude · slice"], ["claude_agent", "Claude agent · full trace"]];
-const state = { traces: [], current: null, data: null, run: null, focus: null };
+const state = { traces: [], current: null, data: null, run: null, focus: null, mode: "traces", review: [] };
+const reviewFilter = { rubric: "", onlyWrong: true, onlyKept: false };
 const $ = (sel, el = document) => el.querySelector(sel);
 const h = (tag, attrs = {}, ...kids) => {
   const el = document.createElement(tag);
@@ -107,7 +119,9 @@ async function init() {
   sel.append(...meta.runs.map(r => h("option", { value: r }, r)));
   state.run = meta.runs.at(-1) || null;
   if (state.run) sel.value = state.run;
-  sel.onchange = () => { state.run = sel.value; if (state.current) openTrace(state.current); };
+  sel.onchange = async () => { state.run = sel.value; if (state.mode === "review") await loadReview(); if (state.current) openTrace(state.current, state.focus); };
+  $("#tab-traces").onclick = () => setMode("traces");
+  $("#tab-review").onclick = () => setMode("review");
   await loadTraces();
   const fromHash = decodeURIComponent(location.hash.slice(1));
   openTrace(state.traces.some(t => t.trace_id === fromHash) ? fromHash : state.traces[0]?.trace_id);
@@ -118,7 +132,62 @@ async function loadTraces() {
   renderTraceList();
 }
 
+async function setMode(mode) {
+  state.mode = mode;
+  $("#tab-traces").classList.toggle("on", mode === "traces");
+  $("#tab-review").classList.toggle("on", mode === "review");
+  $(".layout").classList.toggle("review", mode === "review");
+  if (mode === "review") await loadReview(); else renderTraceList();
+}
+
+async function loadReview() {
+  const res = await api("/api/review" + (state.run ? `?run_id=${encodeURIComponent(state.run)}` : ""));
+  state.review = res.rows;
+  renderReview();
+}
+
+function reviewRows() {
+  return state.review
+    .filter(r => (!reviewFilter.rubric || r.rubric_id === reviewFilter.rubric) && (!reviewFilter.onlyWrong || (r.agent !== null && !r.agrees))
+      && (!reviewFilter.onlyKept || r.kept))
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+}
+
+// Jev's answers next to the slow judges, most confident first, so confident mistakes come up first.
+function renderReview() {
+  const nav = $("#traces");
+  const byRubric = {};
+  for (const r of state.review) {
+    const c = byRubric[r.rubric_id] ||= { n: 0, wrong: 0 };
+    if (r.agent === null) continue;
+    c.n++; if (!r.agrees) c.wrong++;
+  }
+  const rubricSel = h("select", {}, h("option", { value: "" }, "All rubrics"),
+    Object.entries(byRubric).sort((a, b) => b[1].wrong / b[1].n - a[1].wrong / a[1].n)
+      .map(([id, c]) => h("option", { value: id }, `${id} — ${c.wrong}/${c.n} disagree`)));
+  rubricSel.value = reviewFilter.rubric;
+  rubricSel.onchange = () => { reviewFilter.rubric = rubricSel.value; renderReview(); };
+  const box = (key, label) => { const cb = h("input", { type: "checkbox" }); cb.checked = reviewFilter[key];
+    cb.onchange = () => { reviewFilter[key] = cb.checked; renderReview(); }; return h("label", {}, cb, " ", label); };
+  const rows = reviewRows();
+  const controls = h("div", { id: "review-controls" }, rubricSel,
+    h("div", {}, box("onlyWrong", "only where Jev ≠ agent"), "  ", box("onlyKept", "only answers Jev kept (conf ≥ threshold)")),
+    h("div", { class: "muted" }, `${rows.length} answers, most confident first`));
+  nav.replaceChildren(controls, ...rows.map(r => h("div", {
+    class: "rv" + (r.trace_id === state.current && r.rubric_id === state.focus ? " active" : ""),
+    onclick: () => openTrace(r.trace_id, r.rubric_id),
+  },
+    h("div", { class: "line" }, h("b", {}, r.rubric_id), h("span", { class: "muted" }, r.trace_id.slice(0, 8)),
+      h("span", { class: `pill ${r.kept ? "ok" : "warn"}` }, r.kept ? "kept by Jev" : "sent to agent")),
+    h("div", { class: "line" }, "Jev ", h("span", { class: r.agrees ? "right" : "wrong" }, r.jev),
+      ` p ${fmt(r.probabilities[r.jev])} · conf ${fmt(r.confidence)}`,
+      " · agent ", h("b", {}, r.agent ?? "–"), " · Claude slice ", h("b", {}, r.claude_slice ?? "–"),
+      r.human ? [" · you ", h("b", {}, r.human)] : null),
+  )));
+}
+
 function renderTraceList() {
+  if (state.mode === "review") return renderReview();
   const nav = $("#traces");
   nav.replaceChildren(...state.traces.map(t => h("div", {
     class: "t" + (t.trace_id === state.current ? " active" : ""), onclick: () => openTrace(t.trace_id),
@@ -130,13 +199,16 @@ function renderTraceList() {
   )));
 }
 
-async function openTrace(id) {
+async function openTrace(id, focus = null) {
   if (!id) return;
-  state.current = id; state.focus = null;
+  state.current = id; state.focus = focus;
   location.hash = encodeURIComponent(id);
   renderTraceList();
-  state.data = await api(`/api/traces/${encodeURIComponent(id)}` + (state.run ? `?run_id=${encodeURIComponent(state.run)}` : ""));
+  const data = await api(`/api/traces/${encodeURIComponent(id)}` + (state.run ? `?run_id=${encodeURIComponent(state.run)}` : ""));
+  if (state.current !== id) return;  // a later click won the race
+  state.data = data;
   renderRubrics(); renderEvents();
+  if (focus) document.getElementById(`card-${focus}`)?.scrollIntoView({ block: "start" });
 }
 
 const fmt = x => x === null || x === undefined ? "–" : Number(x).toFixed(2);
@@ -160,7 +232,8 @@ function judgeCell(rubric, judge, title) {
   for (const [lab, p] of probs) cell.append(h("div", { class: "bar" }, h("span", {}, lab),
     h("div", { class: "track" }, h("div", { class: "fill", style: `width:${(p * 100).toFixed(0)}%` })), h("span", {}, fmt(p))));
   if (v.explanation) cell.append(h("div", { class: "expl" }, v.explanation));
-  if (v.evidence_ref?.length) cell.append(h("div", { class: "refs" }, "seq ", v.evidence_ref.map(s => h("a", { onclick: () => jump(s) }, s))));
+  const refs = [...new Set(v.evidence_ref || [])].sort((a, b) => a - b);
+  if (refs.length) cell.append(h("div", { class: "refs" }, "seq ", refs.map(s => h("a", { onclick: () => jump(s) }, s))));
   cell.append(h("div", { class: "muted" }, `$${(v.cost_usd || 0).toFixed(5)} · ${fmt(v.latency_s)}s`));
   return cell;
 }
@@ -232,7 +305,8 @@ async function post(body, flag) {
     await api("/api/feedback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     flag.textContent = "saved ✓";
     const t = state.traces.find(t => t.trace_id === state.current);
-    if (t) { const fresh = await api("/api/traces"); state.traces = fresh; renderTraceList(); }
+    if (state.mode === "review") await loadReview();
+    else if (t) { state.traces = await api("/api/traces"); renderTraceList(); }
   } catch (e) { flag.textContent = "save failed: " + e.message; }
 }
 
@@ -283,6 +357,13 @@ function jump(seq) {
 
 document.addEventListener("keydown", (e) => {
   if (["TEXTAREA", "SELECT", "INPUT"].includes(document.activeElement.tagName)) return;
+  if (state.mode === "review") {
+    const rows = reviewRows();
+    const i = rows.findIndex(r => r.trace_id === state.current && r.rubric_id === state.focus);
+    const next = e.key === "j" ? rows[i + 1] : e.key === "k" ? rows[i - 1] : null;
+    if (next) openTrace(next.trace_id, next.rubric_id);
+    return;
+  }
   const i = state.traces.findIndex(t => t.trace_id === state.current);
   if (e.key === "j" && i < state.traces.length - 1) openTrace(state.traces[i + 1].trace_id);
   if (e.key === "k" && i > 0) openTrace(state.traces[i - 1].trace_id);

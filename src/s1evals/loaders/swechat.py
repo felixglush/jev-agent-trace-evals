@@ -239,7 +239,24 @@ def _pa_strings(values: list[str]):
 
 
 def fetch_sample(spec: SampleSpec) -> list[tuple[Trace, list[Event]]]:
-    sessions = select_sessions(_hf_parquet("sessions.parquet", SESSION_COLUMNS), spec)
+    return _fetch(select_sessions(_hf_parquet("sessions.parquet", SESSION_COLUMNS), spec))
+
+
+def fetch_sessions(session_ids: list[str]) -> list[tuple[Trace, list[Event]]]:
+    """Exactly these sessions, e.g. the traces an experiment log lists."""
+    wanted = set(session_ids)
+    best: dict[str, dict] = {}
+    for r in _hf_parquet("sessions.parquet", SESSION_COLUMNS):
+        prev = best.get(r["session_id"])
+        if r["session_id"] in wanted and (prev is None or (r["output_tokens"] or 0) > (prev["output_tokens"] or 0)):
+            best[r["session_id"]] = r
+    missing = wanted - set(best)
+    if missing:
+        raise KeyError(f"sessions not in SWE-chat: {sorted(missing)[:5]}")
+    return _fetch([best[i] for i in session_ids])
+
+
+def _fetch(sessions: list[Mapping]) -> list[tuple[Trace, list[Event]]]:
     ids = [s["session_id"] for s in sessions]
     rows = _hf_parquet("conversations.parquet", CONVERSATION_COLUMNS, ids)
     by_session: dict[str, list[dict]] = {i: [] for i in ids}

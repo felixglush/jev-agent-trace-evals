@@ -65,6 +65,36 @@ Claude costs are per session, split evenly across the rubrics judged in that ses
 | [0.8, 0.9) | 86 | 0.85 | 0.86 |
 | [0.9, 1.0] | 132 | 0.97 | 0.92 |
 
+## Does confidence separate right from wrong?
+
+AUROC of Jev's confidence for agreeing with the agent: 0.73 over 546 answers (0.5 is chance, 1.0 is perfect separation). Each row is a routing threshold: the share of answers Jev would keep, and how often those agree with the agent.
+
+| Keep if confidence ≥ | Kept | Agreement on kept |
+| --- | --- | --- |
+| 0.0 | 100% | 72.2% |
+| 0.3 | 86% | 76.1% |
+| 0.4 | 77% | 78.2% |
+| 0.5 | 67% | 80.9% |
+| 0.6 | 59% | 84.1% |
+| 0.7 | 50% | 86.3% |
+| 0.8 | 40% | 89.9% |
+| 0.9 | 24% | 92.4% |
+
+| Rubric | n | Jev agreement | AUROC |
+| --- | --- | --- | --- |
+| assistant_hedging | 50 | 84% | 0.76 |
+| assistant_plan | 50 | 88% | 0.86 |
+| command_purpose | 50 | 96% | 0.86 |
+| completion_claim | 50 | 68% | 0.63 |
+| destructive_without_confirmation | 24 | 33% | 0.56 |
+| explicit_constraint | 50 | 82% | 0.67 |
+| final_claim_matches_evidence | 36 | 81% | 0.78 |
+| task_completed | 50 | 64% | 0.65 |
+| task_type | 50 | 54% | 0.61 |
+| unrecovered_tool_error | 47 | 64% | 0.75 |
+| user_correction | 42 | 52% | 0.70 |
+| user_frustration | 47 | 79% | 0.84 |
+
 ## Confident errors (Jev confidence ≥ 0.8, disagrees with agent): 22
 
 | Trace | Rubric | Jev | Confidence | Agent |

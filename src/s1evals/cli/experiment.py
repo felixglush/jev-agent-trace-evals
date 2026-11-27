@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 import click
 
@@ -59,6 +60,17 @@ def experiment_run(ctx, run_id, slug, description, judges, trace_ids, rubric_ids
     click.echo(out / "REPORT.md")
 
 
+@experiment.command("import")
+@click.argument("run_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.pass_context
+def experiment_import(ctx, run_dir) -> None:
+    """Load a committed experiments/<run_id> log's verdicts into the local store."""
+    from s1evals.experiments import import_log
+
+    run_id, n = import_log(store_of(ctx), run_dir)
+    click.echo(f"{run_id}: {n} verdicts")
+
+
 @experiment.command("report")
 @click.argument("run_id")
 @click.pass_context
@@ -67,14 +79,18 @@ def experiment_report(ctx, run_id) -> None:
     from s1evals import experiments
 
     out = experiments.EXPERIMENTS_DIR / run_id
-    cfg = RunConfig(
-        **{
-            k: v
-            for k, v in json.loads((out / "config.json").read_text()).items()
-            if k in RunConfig.__dataclass_fields__
-        }
-    )
+    config = json.loads((out / "config.json").read_text())
+    cfg = RunConfig(**{k: v for k, v in config.items() if k in RunConfig.__dataclass_fields__})
     rs = {rid: r for rid, r in rubrics_of(ctx).items() if rid in cfg.rubric_ids}
+    # Slices are re-extracted with today's rubrics, so a run made with older
+    # versions can't be re-reported faithfully.
+    changed = {
+        rid: (v, rs[rid].version)
+        for rid, v in config.get("rubric_versions", {}).items()
+        if rid in rs and rs[rid].version != v
+    }
+    if changed:
+        raise click.ClickException(f"rubrics changed since {run_id} ran (ran, now): {changed}; its log is left as is")
     store = store_of(ctx)
     slice_map = {}
     for tid in cfg.trace_ids:
