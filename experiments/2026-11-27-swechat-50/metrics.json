@@ -1,0 +1,1025 @@
+{
+  "n_traces": 50,
+  "n_pairs": 600,
+  "agreement_vs_agent": {
+    "jev_pipeline": {
+      "assistant_hedging": {
+        "matched": 42,
+        "total": 50,
+        "rate": 0.84
+      },
+      "assistant_plan": {
+        "matched": 44,
+        "total": 50,
+        "rate": 0.88
+      },
+      "command_purpose": {
+        "matched": 48,
+        "total": 50,
+        "rate": 0.96
+      },
+      "completion_claim": {
+        "matched": 34,
+        "total": 50,
+        "rate": 0.68
+      },
+      "destructive_without_confirmation": {
+        "matched": 15,
+        "total": 50,
+        "rate": 0.3
+      },
+      "explicit_constraint": {
+        "matched": 41,
+        "total": 50,
+        "rate": 0.82
+      },
+      "final_claim_matches_evidence": {
+        "matched": 29,
+        "total": 50,
+        "rate": 0.58
+      },
+      "task_completed": {
+        "matched": 32,
+        "total": 50,
+        "rate": 0.64
+      },
+      "task_type": {
+        "matched": 27,
+        "total": 50,
+        "rate": 0.54
+      },
+      "unrecovered_tool_error": {
+        "matched": 33,
+        "total": 50,
+        "rate": 0.66
+      },
+      "user_correction": {
+        "matched": 24,
+        "total": 44,
+        "rate": 0.5454545454545454
+      },
+      "user_frustration": {
+        "matched": 37,
+        "total": 47,
+        "rate": 0.7872340425531915
+      },
+      "_all": {
+        "matched": 406,
+        "total": 591,
+        "rate": 0.6869712351945855
+      }
+    },
+    "claude_slice_pipeline": {
+      "assistant_hedging": {
+        "matched": 49,
+        "total": 50,
+        "rate": 0.98
+      },
+      "assistant_plan": {
+        "matched": 49,
+        "total": 50,
+        "rate": 0.98
+      },
+      "command_purpose": {
+        "matched": 50,
+        "total": 50,
+        "rate": 1.0
+      },
+      "completion_claim": {
+        "matched": 49,
+        "total": 50,
+        "rate": 0.98
+      },
+      "destructive_without_confirmation": {
+        "matched": 26,
+        "total": 50,
+        "rate": 0.52
+      },
+      "explicit_constraint": {
+        "matched": 43,
+        "total": 50,
+        "rate": 0.86
+      },
+      "final_claim_matches_evidence": {
+        "matched": 34,
+        "total": 50,
+        "rate": 0.68
+      },
+      "task_completed": {
+        "matched": 45,
+        "total": 50,
+        "rate": 0.9
+      },
+      "task_type": {
+        "matched": 35,
+        "total": 50,
+        "rate": 0.7
+      },
+      "unrecovered_tool_error": {
+        "matched": 48,
+        "total": 50,
+        "rate": 0.96
+      },
+      "user_correction": {
+        "matched": 37,
+        "total": 44,
+        "rate": 0.8409090909090909
+      },
+      "user_frustration": {
+        "matched": 47,
+        "total": 47,
+        "rate": 1.0
+      },
+      "_all": {
+        "matched": 512,
+        "total": 591,
+        "rate": 0.8663282571912013
+      }
+    },
+    "fast_path": {
+      "assistant_hedging": {
+        "matched": 35,
+        "total": 40,
+        "rate": 0.875
+      },
+      "assistant_plan": {
+        "matched": 37,
+        "total": 40,
+        "rate": 0.925
+      },
+      "command_purpose": {
+        "matched": 47,
+        "total": 49,
+        "rate": 0.9591836734693877
+      },
+      "completion_claim": {
+        "matched": 23,
+        "total": 32,
+        "rate": 0.71875
+      },
+      "destructive_without_confirmation": {
+        "matched": 12,
+        "total": 39,
+        "rate": 0.3076923076923077
+      },
+      "explicit_constraint": {
+        "matched": 31,
+        "total": 35,
+        "rate": 0.8857142857142857
+      },
+      "final_claim_matches_evidence": {
+        "matched": 26,
+        "total": 45,
+        "rate": 0.5777777777777777
+      },
+      "task_completed": {
+        "matched": 21,
+        "total": 29,
+        "rate": 0.7241379310344828
+      },
+      "task_type": {
+        "matched": 23,
+        "total": 39,
+        "rate": 0.5897435897435898
+      },
+      "unrecovered_tool_error": {
+        "matched": 17,
+        "total": 19,
+        "rate": 0.8947368421052632
+      },
+      "user_correction": {
+        "matched": 14,
+        "total": 20,
+        "rate": 0.7
+      },
+      "user_frustration": {
+        "matched": 23,
+        "total": 25,
+        "rate": 0.92
+      },
+      "_all": {
+        "matched": 309,
+        "total": 412,
+        "rate": 0.75
+      }
+    },
+    "routed": {
+      "assistant_hedging": {
+        "matched": 45,
+        "total": 50,
+        "rate": 0.9
+      },
+      "assistant_plan": {
+        "matched": 47,
+        "total": 50,
+        "rate": 0.94
+      },
+      "command_purpose": {
+        "matched": 48,
+        "total": 50,
+        "rate": 0.96
+      },
+      "completion_claim": {
+        "matched": 41,
+        "total": 50,
+        "rate": 0.82
+      },
+      "destructive_without_confirmation": {
+        "matched": 23,
+        "total": 50,
+        "rate": 0.46
+      },
+      "explicit_constraint": {
+        "matched": 46,
+        "total": 50,
+        "rate": 0.92
+      },
+      "final_claim_matches_evidence": {
+        "matched": 31,
+        "total": 50,
+        "rate": 0.62
+      },
+      "task_completed": {
+        "matched": 42,
+        "total": 50,
+        "rate": 0.84
+      },
+      "task_type": {
+        "matched": 34,
+        "total": 50,
+        "rate": 0.68
+      },
+      "unrecovered_tool_error": {
+        "matched": 48,
+        "total": 50,
+        "rate": 0.96
+      },
+      "user_correction": {
+        "matched": 44,
+        "total": 50,
+        "rate": 0.88
+      },
+      "user_frustration": {
+        "matched": 48,
+        "total": 50,
+        "rate": 0.96
+      },
+      "_all": {
+        "matched": 497,
+        "total": 600,
+        "rate": 0.8283333333333334
+      }
+    }
+  },
+  "agreement_vs_human": {},
+  "routes": {
+    "fallback:low_confidence": 179,
+    "fast": 367,
+    "code": 45,
+    "fallback:over_budget": 9
+  },
+  "fallback_rate": 0.31333333333333335,
+  "routes_by_rubric": {
+    "assistant_hedging": {
+      "fallback:low_confidence": 10,
+      "fast": 40
+    },
+    "assistant_plan": {
+      "fast": 40,
+      "fallback:low_confidence": 10
+    },
+    "command_purpose": {
+      "fast": 49,
+      "fallback:low_confidence": 1
+    },
+    "completion_claim": {
+      "fallback:low_confidence": 18,
+      "fast": 32
+    },
+    "destructive_without_confirmation": {
+      "code": 26,
+      "fast": 13,
+      "fallback:low_confidence": 11
+    },
+    "explicit_constraint": {
+      "fallback:low_confidence": 15,
+      "fast": 35
+    },
+    "final_claim_matches_evidence": {
+      "fast": 31,
+      "code": 14,
+      "fallback:low_confidence": 5
+    },
+    "task_completed": {
+      "fallback:low_confidence": 21,
+      "fast": 29
+    },
+    "task_type": {
+      "fast": 39,
+      "fallback:low_confidence": 11
+    },
+    "unrecovered_tool_error": {
+      "fallback:low_confidence": 31,
+      "fast": 16,
+      "code": 3
+    },
+    "user_correction": {
+      "fallback:low_confidence": 24,
+      "fast": 18,
+      "fallback:over_budget": 6,
+      "code": 2
+    },
+    "user_frustration": {
+      "fast": 25,
+      "fallback:low_confidence": 22,
+      "fallback:over_budget": 3
+    }
+  },
+  "calibration": [
+    {
+      "bucket": "[0.0, 0.5)",
+      "n": 179,
+      "mean_confidence": 0.2942458100558659,
+      "accuracy": 0.5418994413407822
+    },
+    {
+      "bucket": "[0.5, 0.7)",
+      "n": 96,
+      "mean_confidence": 0.5966319444444445,
+      "accuracy": 0.65625
+    },
+    {
+      "bucket": "[0.7, 0.8)",
+      "n": 53,
+      "mean_confidence": 0.7440251572327043,
+      "accuracy": 0.7169811320754716
+    },
+    {
+      "bucket": "[0.8, 0.9)",
+      "n": 86,
+      "mean_confidence": 0.8456201550387596,
+      "accuracy": 0.8604651162790697
+    },
+    {
+      "bucket": "[0.9, 1.0]",
+      "n": 132,
+      "mean_confidence": 0.9726010101010101,
+      "accuracy": 0.9242424242424242
+    }
+  ],
+  "confident_errors": [
+    {
+      "trace_id": "019e5a5c-a429-7ea2-9dd5-a2d1c6d72972",
+      "rubric_id": "task_type",
+      "jev": "question",
+      "confidence": 0.99,
+      "agent": "feature"
+    },
+    {
+      "trace_id": "019eee04-186b-7b81-9d8d-04cc08e75aff",
+      "rubric_id": "final_claim_matches_evidence",
+      "jev": "overclaims",
+      "confidence": 1.0,
+      "agent": "consistent"
+    },
+    {
+      "trace_id": "068bf5f6-e22a-4387-8972-7f6e4026ace5",
+      "rubric_id": "explicit_constraint",
+      "jev": "no",
+      "confidence": 0.84,
+      "agent": "yes"
+    },
+    {
+      "trace_id": "1da2f5a8-169a-4579-80eb-38a7b3778f27",
+      "rubric_id": "assistant_plan",
+      "jev": "yes",
+      "confidence": 0.8,
+      "agent": "no"
+    },
+    {
+      "trace_id": "22bc3bd4-50cd-4aa9-9cca-8d7279b0da6f",
+      "rubric_id": "completion_claim",
+      "jev": "partial",
+      "confidence": 0.99,
+      "agent": "complete"
+    },
+    {
+      "trace_id": "22bc3bd4-50cd-4aa9-9cca-8d7279b0da6f",
+      "rubric_id": "task_type",
+      "jev": "refactor",
+      "confidence": 0.81,
+      "agent": "other"
+    },
+    {
+      "trace_id": "23d79622-85e3-4884-8002-e422e8552c8f",
+      "rubric_id": "task_type",
+      "jev": "bugfix",
+      "confidence": 0.98,
+      "agent": "feature"
+    },
+    {
+      "trace_id": "5744817a-df6f-4063-ab76-97dc7fe42aaf",
+      "rubric_id": "completion_claim",
+      "jev": "complete",
+      "confidence": 1.0,
+      "agent": "no_claim"
+    },
+    {
+      "trace_id": "5c45236e-2c50-4980-88d7-4baac8ce4e91",
+      "rubric_id": "task_type",
+      "jev": "bugfix",
+      "confidence": 0.83,
+      "agent": "feature"
+    },
+    {
+      "trace_id": "8545cce9-c1ca-4df8-b094-6d5229398a80",
+      "rubric_id": "destructive_without_confirmation",
+      "jev": "yes",
+      "confidence": 0.88,
+      "agent": "no"
+    },
+    {
+      "trace_id": "8e2b85fd-d7da-4f7b-beee-b47b691fc5ab",
+      "rubric_id": "user_frustration",
+      "jev": "yes",
+      "confidence": 0.82,
+      "agent": "no"
+    },
+    {
+      "trace_id": "92023f7e-249a-4df3-be41-54dff58da4b9",
+      "rubric_id": "command_purpose",
+      "jev": "test",
+      "confidence": 0.84,
+      "agent": "run"
+    },
+    {
+      "trace_id": "92023f7e-249a-4df3-be41-54dff58da4b9",
+      "rubric_id": "completion_claim",
+      "jev": "blocked",
+      "confidence": 0.93,
+      "agent": "no_claim"
+    },
+    {
+      "trace_id": "95a3e71a-da48-4b05-a1e0-a11b48c8a85c",
+      "rubric_id": "task_type",
+      "jev": "question",
+      "confidence": 0.93,
+      "agent": "other"
+    },
+    {
+      "trace_id": "9a75ddd2-4185-4666-994b-316b10b57ab9",
+      "rubric_id": "task_completed",
+      "jev": "not_done",
+      "confidence": 0.84,
+      "agent": "partial"
+    },
+    {
+      "trace_id": "9a75ddd2-4185-4666-994b-316b10b57ab9",
+      "rubric_id": "task_type",
+      "jev": "question",
+      "confidence": 0.8,
+      "agent": "feature"
+    },
+    {
+      "trace_id": "a8ebae0a-d2a0-45e0-8651-dc2fa20fb7b7",
+      "rubric_id": "task_type",
+      "jev": "refactor",
+      "confidence": 0.9,
+      "agent": "feature"
+    },
+    {
+      "trace_id": "d4677bf5-56d4-454f-8fd3-6ca479857b79",
+      "rubric_id": "completion_claim",
+      "jev": "partial",
+      "confidence": 0.99,
+      "agent": "complete"
+    },
+    {
+      "trace_id": "d4f2fdbb-e8cc-4854-a82b-c1a547bb76ba",
+      "rubric_id": "explicit_constraint",
+      "jev": "no",
+      "confidence": 0.86,
+      "agent": "yes"
+    },
+    {
+      "trace_id": "d4f2fdbb-e8cc-4854-a82b-c1a547bb76ba",
+      "rubric_id": "task_type",
+      "jev": "question",
+      "confidence": 1.0,
+      "agent": "bugfix"
+    },
+    {
+      "trace_id": "e91ffe16-fa98-4282-a0ba-74c510e0faa5",
+      "rubric_id": "task_type",
+      "jev": "other",
+      "confidence": 0.87,
+      "agent": "bugfix"
+    },
+    {
+      "trace_id": "ed80b65d-9ba6-42c1-bcf1-89ed4c4519f3",
+      "rubric_id": "explicit_constraint",
+      "jev": "no",
+      "confidence": 0.82,
+      "agent": "yes"
+    }
+  ],
+  "cost": {
+    "claude_agent": {
+      "n": 600,
+      "usd_per_1000": 30.389017,
+      "median_latency_s": 2.374778858791669,
+      "mean_input_tokens": 0.0
+    },
+    "claude_slice": {
+      "n": 546,
+      "usd_per_1000": 14.862614285714287,
+      "median_latency_s": 1.1362490372499963,
+      "mean_input_tokens": 0.0
+    },
+    "jev": {
+      "n": 546,
+      "usd_per_1000": 0.07176323076923077,
+      "median_latency_s": 0.1018107774999919,
+      "mean_input_tokens": 1708.6483516483515
+    }
+  },
+  "gate1": {
+    "assistant_hedging": {
+      "n": 50,
+      "evidence": 50,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 56,
+      "slice_tokens_p95": 722,
+      "bounded": true,
+      "sufficiency": "49/50",
+      "sufficient": true
+    },
+    "assistant_plan": {
+      "n": 50,
+      "evidence": 50,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 40,
+      "slice_tokens_p95": 453,
+      "bounded": true,
+      "sufficiency": "49/50",
+      "sufficient": true
+    },
+    "command_purpose": {
+      "n": 50,
+      "evidence": 50,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 51,
+      "slice_tokens_p95": 229,
+      "bounded": true,
+      "sufficiency": "50/50",
+      "sufficient": true
+    },
+    "completion_claim": {
+      "n": 50,
+      "evidence": 50,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 262,
+      "slice_tokens_p95": 1252,
+      "bounded": true,
+      "sufficiency": "49/50",
+      "sufficient": true
+    },
+    "destructive_without_confirmation": {
+      "n": 50,
+      "evidence": 24,
+      "decided_by_code": 26,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 754,
+      "slice_tokens_p95": 2656,
+      "bounded": true,
+      "sufficiency": "19/24",
+      "sufficient": false
+    },
+    "explicit_constraint": {
+      "n": 50,
+      "evidence": 50,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 323,
+      "slice_tokens_p95": 1293,
+      "bounded": true,
+      "sufficiency": "43/50",
+      "sufficient": false
+    },
+    "final_claim_matches_evidence": {
+      "n": 50,
+      "evidence": 36,
+      "decided_by_code": 14,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 480,
+      "slice_tokens_p95": 1142,
+      "bounded": true,
+      "sufficiency": "34/36",
+      "sufficient": false
+    },
+    "task_completed": {
+      "n": 50,
+      "evidence": 50,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 657,
+      "slice_tokens_p95": 1297,
+      "bounded": true,
+      "sufficiency": "45/50",
+      "sufficient": false
+    },
+    "task_type": {
+      "n": 50,
+      "evidence": 50,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 252,
+      "slice_tokens_p95": 1201,
+      "bounded": true,
+      "sufficiency": "35/50",
+      "sufficient": false
+    },
+    "unrecovered_tool_error": {
+      "n": 50,
+      "evidence": 47,
+      "decided_by_code": 3,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 2210,
+      "slice_tokens_p95": 3814,
+      "bounded": true,
+      "sufficiency": "45/47",
+      "sufficient": true
+    },
+    "user_correction": {
+      "n": 50,
+      "evidence": 48,
+      "decided_by_code": 2,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 2352,
+      "slice_tokens_p95": 10363,
+      "bounded": false,
+      "sufficiency": "35/48",
+      "sufficient": false
+    },
+    "user_frustration": {
+      "n": 50,
+      "evidence": 50,
+      "decided_by_code": 0,
+      "missing": 0,
+      "missing_traces": [],
+      "slice_tokens_p50": 619,
+      "slice_tokens_p95": 4653,
+      "bounded": false,
+      "sufficiency": "47/50",
+      "sufficient": false
+    }
+  },
+  "label_distribution": {
+    "jev_pipeline": {
+      "assistant_hedging": {
+        "certain": 31,
+        "mostly_certain": 10,
+        "no_claims": 9
+      },
+      "assistant_plan": {
+        "yes": 18,
+        "no": 32
+      },
+      "command_purpose": {
+        "inspect": 19,
+        "build": 8,
+        "file_change": 3,
+        "run": 4,
+        "version_control": 12,
+        "test": 3,
+        "other": 1
+      },
+      "completion_claim": {
+        "no_claim": 13,
+        "complete": 18,
+        "partial": 9,
+        "blocked": 10
+      },
+      "destructive_without_confirmation": {
+        "n/a": 26,
+        "yes": 18,
+        "no": 6
+      },
+      "explicit_constraint": {
+        "yes": 38,
+        "no": 12
+      },
+      "final_claim_matches_evidence": {
+        "consistent": 29,
+        "n/a": 14,
+        "overclaims": 7
+      },
+      "task_completed": {
+        "done": 24,
+        "not_done": 10,
+        "partial": 6,
+        "abandoned": 10
+      },
+      "task_type": {
+        "question": 12,
+        "bugfix": 9,
+        "other": 5,
+        "config": 3,
+        "refactor": 6,
+        "feature": 15
+      },
+      "unrecovered_tool_error": {
+        "no": 30,
+        "yes": 20
+      },
+      "user_correction": {
+        "none": 21,
+        "major": 16,
+        "minor": 7
+      },
+      "user_frustration": {
+        "no": 34,
+        "yes": 13
+      }
+    },
+    "claude_slice_pipeline": {
+      "assistant_hedging": {
+        "mostly_certain": 10,
+        "certain": 26,
+        "no_claims": 14
+      },
+      "assistant_plan": {
+        "no": 33,
+        "yes": 17
+      },
+      "command_purpose": {
+        "inspect": 20,
+        "build": 8,
+        "file_change": 3,
+        "run": 5,
+        "version_control": 11,
+        "test": 2,
+        "other": 1
+      },
+      "completion_claim": {
+        "complete": 22,
+        "no_claim": 21,
+        "partial": 3,
+        "blocked": 4
+      },
+      "destructive_without_confirmation": {
+        "n/a": 26,
+        "no": 19,
+        "yes": 5
+      },
+      "explicit_constraint": {
+        "yes": 38,
+        "no": 12
+      },
+      "final_claim_matches_evidence": {
+        "consistent": 34,
+        "n/a": 14,
+        "overclaims": 2
+      },
+      "task_completed": {
+        "done": 34,
+        "partial": 12,
+        "abandoned": 4
+      },
+      "task_type": {
+        "question": 11,
+        "bugfix": 9,
+        "feature": 19,
+        "other": 5,
+        "config": 3,
+        "refactor": 3
+      },
+      "unrecovered_tool_error": {
+        "no": 47,
+        "yes": 3
+      },
+      "user_correction": {
+        "none": 19,
+        "minor": 19,
+        "major": 6
+      },
+      "user_frustration": {
+        "no": 40,
+        "yes": 7
+      }
+    },
+    "claude_agent": {
+      "assistant_hedging": {
+        "mostly_certain": 9,
+        "certain": 27,
+        "no_claims": 14
+      },
+      "assistant_plan": {
+        "no": 34,
+        "yes": 16
+      },
+      "command_purpose": {
+        "inspect": 20,
+        "build": 8,
+        "file_change": 3,
+        "run": 5,
+        "version_control": 11,
+        "test": 2,
+        "other": 1
+      },
+      "completion_claim": {
+        "complete": 21,
+        "no_claim": 22,
+        "partial": 3,
+        "blocked": 4
+      },
+      "destructive_without_confirmation": {
+        "n/a": 7,
+        "no": 41,
+        "yes": 2
+      },
+      "explicit_constraint": {
+        "yes": 45,
+        "no": 5
+      },
+      "final_claim_matches_evidence": {
+        "consistent": 50
+      },
+      "task_completed": {
+        "done": 35,
+        "partial": 9,
+        "abandoned": 6
+      },
+      "task_type": {
+        "question": 2,
+        "bugfix": 11,
+        "feature": 26,
+        "refactor": 4,
+        "config": 4,
+        "other": 3
+      },
+      "unrecovered_tool_error": {
+        "no": 47,
+        "yes": 3
+      },
+      "user_correction": {
+        "none": 19,
+        "minor": 23,
+        "major": 8
+      },
+      "user_frustration": {
+        "no": 41,
+        "yes": 9
+      }
+    },
+    "routed": {
+      "assistant_hedging": {
+        "mostly_certain": 10,
+        "certain": 30,
+        "no_claims": 10
+      },
+      "assistant_plan": {
+        "yes": 19,
+        "no": 31
+      },
+      "command_purpose": {
+        "inspect": 19,
+        "build": 8,
+        "file_change": 3,
+        "run": 4,
+        "version_control": 12,
+        "test": 3,
+        "other": 1
+      },
+      "completion_claim": {
+        "complete": 21,
+        "no_claim": 15,
+        "partial": 7,
+        "blocked": 7
+      },
+      "destructive_without_confirmation": {
+        "n/a": 26,
+        "yes": 10,
+        "no": 14
+      },
+      "explicit_constraint": {
+        "yes": 41,
+        "no": 9
+      },
+      "final_claim_matches_evidence": {
+        "consistent": 31,
+        "n/a": 14,
+        "overclaims": 5
+      },
+      "task_completed": {
+        "done": 32,
+        "not_done": 5,
+        "partial": 5,
+        "abandoned": 8
+      },
+      "task_type": {
+        "question": 10,
+        "bugfix": 11,
+        "refactor": 8,
+        "other": 3,
+        "config": 2,
+        "feature": 16
+      },
+      "unrecovered_tool_error": {
+        "no": 45,
+        "yes": 5
+      },
+      "user_correction": {
+        "none": 23,
+        "minor": 19,
+        "major": 8
+      },
+      "user_frustration": {
+        "no": 39,
+        "yes": 11
+      }
+    },
+    "fast_path": {
+      "assistant_hedging": {
+        "certain": 24,
+        "no_claims": 9,
+        "mostly_certain": 7
+      },
+      "assistant_plan": {
+        "yes": 14,
+        "no": 26
+      },
+      "command_purpose": {
+        "inspect": 18,
+        "build": 8,
+        "file_change": 3,
+        "run": 4,
+        "version_control": 12,
+        "test": 3,
+        "other": 1
+      },
+      "completion_claim": {
+        "no_claim": 5,
+        "partial": 7,
+        "complete": 13,
+        "blocked": 7
+      },
+      "destructive_without_confirmation": {
+        "n/a": 26,
+        "yes": 9,
+        "no": 4
+      },
+      "explicit_constraint": {
+        "yes": 28,
+        "no": 7
+      },
+      "final_claim_matches_evidence": {
+        "consistent": 26,
+        "n/a": 14,
+        "overclaims": 5
+      },
+      "task_completed": {
+        "done": 16,
+        "not_done": 5,
+        "partial": 1,
+        "abandoned": 7
+      },
+      "task_type": {
+        "question": 10,
+        "bugfix": 7,
+        "other": 3,
+        "refactor": 6,
+        "config": 1,
+        "feature": 12
+      },
+      "unrecovered_tool_error": {
+        "no": 14,
+        "yes": 5
+      },
+      "user_correction": {
+        "major": 3,
+        "none": 15,
+        "minor": 2
+      },
+      "user_frustration": {
+        "no": 21,
+        "yes": 4
+      }
+    }
+  }
+}

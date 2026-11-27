@@ -202,6 +202,15 @@ def write_log(
     verdicts = [
         v for _, v in store.scores(run_id=cfg.run_id) if (v.trace_id, v.rubric_id) in slice_map and v.judge in judges
     ]
+    # A resumed run retries what failed before; keep only problems still unresolved.
+    scored = {(v.judge.value, v.trace_id, v.rubric_id) for v in verdicts}
+    sessions = {(judge, trace_id) for judge, trace_id, _ in scored}
+    problems = [
+        p
+        for p in problems
+        if (p["judge"], p["trace_id"], p["rubric_id"]) not in scored
+        and not (p["rubric_id"] is None and (p["judge"], p["trace_id"]) in sessions)
+    ]
     metrics = analysis.compute(rubrics, slice_map, verdicts, human_labels(store))
 
     config = {
