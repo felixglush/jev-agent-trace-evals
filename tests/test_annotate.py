@@ -59,3 +59,10 @@ def test_review_lists_each_jev_answer_against_the_agent(store):
         "trace_id": "fx_retry", "rubric_id": "task_type", "jev": "question", "confidence": 0.95, "probabilities": {},
         "agent": "bugfix", "claude_slice": "bugfix", "human": None, "agrees": False, "kept": True,
     }]  # fmt: skip
+
+
+def test_thresholds_endpoint_tunes_against_the_agent(store):
+    body = client(store).get("/api/thresholds", params={"run_id": "run1", "target": 0.9}).json()
+    assert body["run_id"] == "run1" and body["target"] == 0.9
+    r = body["by_rubric"]["user_correction"]
+    assert r["n"] == 1 and r["accuracy"] == 1.0 and r["current"] == 0.5

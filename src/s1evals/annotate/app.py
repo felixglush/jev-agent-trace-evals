@@ -165,6 +165,18 @@ def create_app(store: Store, rubrics_dir: Path, author: str) -> FastAPI:
             )
         return {"run_id": run_id, "rows": rows}
 
+    @app.get("/api/thresholds")
+    def thresholds(run_id: str | None = None, target: float = 0.85) -> dict:
+        """Per-rubric ROC of Jev's confidence against the agent's labels, and
+        the routing threshold that would meet `target` agreement."""
+        run_id = latest_run(run_id)
+        if not run_id:
+            return {"run_id": None, "target": target, "overall": None, "by_rubric": {}}
+        by = analysis.index([v for _, v in store.scores(run_id=run_id)])
+        reference = {k: v.label for k, v in by[JudgeName.CLAUDE_AGENT].items()}
+        current = {rid: r.threshold for rid, r in rubrics().items()}
+        return {"run_id": run_id, **analysis.tune_thresholds(by[JudgeName.JEV], reference, target, current)}
+
     @app.get("/api/traces/{trace_id}/events/{seq}")
     def event(trace_id: str, seq: int) -> dict:
         match = [e for e in store.events(trace_id) if e.seq == seq]
